@@ -19,21 +19,15 @@ function extract_chapter(string $title, string $feedTitle = ''): array
     // "Series ... Chapter 12 ..."
     if (preg_match("/^(.*?)[\s\-–—:|,·]*\b$kw\s*$num\b(.*)$/iu", $title, $m) && trim($m[1]) !== '') {
         $number = (float) str_replace(',', '.', $m[2]);
-        $series = $m[1];
-        // Some feeds repeat the chapter number in front: "22 — Series Name – Chapter 22".
-        if (preg_match('/^\s*(\d{1,5}(?:[.,]\d{1,2})?)\s*[\-–—:|.]\s+(.+)$/u', $series, $pm)
-            && (float) str_replace(',', '.', $pm[1]) === $number) {
-            $series = $pm[2];
-        }
         return [
-            'series' => clean_series($series),
+            'series' => clean_series(strip_repeated_number($m[1], $number)),
             'number' => $number,
             'label' => clean_label($m[3]),
         ];
     }
     // "Chapter 12 - Series" or just "Chapter 12" (per-series feed)
     if (preg_match("/^$kw\s*$num\b\s*[\-–—:|]?\s*(.*)$/iu", $title, $m)) {
-        $rest = trim($m[2]);
+        $rest = strip_repeated_number(trim($m[2]), (float) str_replace(',', '.', $m[1]));
         $useFeed = $feedTitle !== '' && ($rest === '' || mb_strlen($rest) < 3);
         return [
             'series' => clean_series($useFeed ? $feedTitle : ($rest !== '' ? $rest : $feedTitle)),
@@ -42,6 +36,19 @@ function extract_chapter(string $title, string $feedTitle = ''): array
         ];
     }
     return ['series' => clean_series($title), 'number' => null, 'label' => ''];
+}
+
+/**
+ * Some feeds repeat the chapter number before the series name:
+ * "22 — Series Name – Chapter 22" or "Chapter 22: 22 — Series Name".
+ */
+function strip_repeated_number(string $series, float $number): string
+{
+    if (preg_match('/^\s*(\d{1,5}(?:[.,]\d{1,2})?)\s*[\-–—:|.]\s+(.+)$/u', $series, $m)
+        && (float) str_replace(',', '.', $m[1]) === $number) {
+        return $m[2];
+    }
+    return $series;
 }
 
 function clean_series(string $s): string
