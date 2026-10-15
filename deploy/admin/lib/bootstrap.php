@@ -22,7 +22,19 @@ require __DIR__ . '/connectors.php';
 require __DIR__ . '/sources.php';
 require __DIR__ . '/crawler.php';
 require __DIR__ . '/publish.php';
-require __DIR__ . '/pages.php';
+if (is_file(__DIR__ . '/pages.php')) {
+    require __DIR__ . '/pages.php';
+} else {
+    // Some hosts' virus scanners delete upload code. Keep the crawler and dashboard
+    // running without page hosting; the dashboard shows a warning (pages_missing()).
+    function pages_missing(): bool { return true; }
+    function hosted_pages(?array $set = null): array { return []; }
+    function pages_publish(): array { return []; }
+    function pages_clear(int $updateId): void {}
+    function update_pages(array $u): array { return []; }
+    function chapter_for_pages(int $updateId): ?array { return null; }
+    function pages_upload(array $u, array $files): array { return [0, ['Page uploads are switched off because admin/lib/pages.php is missing.']]; }
+}
 
 /** @return list<string> what this server is missing, empty when everything is there */
 function missing_requirements(): array

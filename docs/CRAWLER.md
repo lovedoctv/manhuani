@@ -343,6 +343,7 @@ SQLite works well for this amount of data. If you prefer MySQL:
 | Updates don't show on the site | Click **Refresh website now** on the Updates page, then hard-refresh the site (Ctrl+F5). |
 | A MangaDex test says "no numbered chapters" | MangaDex has no chapters in that language for the title. Some titles only link to official publishers. |
 | "MangaDex asked us to slow down" | Nothing to do. The source waits and tries again later. |
+| The dashboard says `admin/lib/pages.php` is missing, or shows HTTP ERROR 500 after an update | Your host's virus scanner (Imunify360 or ImunifyAV in cPanel) may have removed the page-upload file. Look for `pages.php` in its list of detected files and mark it as a false positive (or ask Namecheap support to whitelist it), then click **Deploy HEAD Commit** again. Everything except page uploads keeps working meanwhile. |
 | A source keeps failing | Open **Logs** to see why. After 10 errors in a row it switches itself off. Fix it, test it, then enable it again. |
 
 Check that the private parts are blocked: https://aduna.fit/manhuani/admin/cli.php should show **403 Forbidden**.

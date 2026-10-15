@@ -623,6 +623,9 @@ switch ($page) {
           <h1>Dashboard</h1>
           <form method="post" action="<?= h(page_url('run_all')) ?>"><?= csrf_field() ?><button class="btn">Check all enabled sources now</button></form>
         </div>
+        <?php if (pages_missing()): ?>
+          <div class="alert warn">The file <code>admin/lib/pages.php</code> is missing on your server, so uploading chapter pages is switched off. Everything else works. Your host's virus scanner may have removed it: see "Troubleshooting" in the install guide.</div>
+        <?php endif; ?>
         <?php if ($cronStale): ?>
           <div class="alert warn">The scheduled check hasn't run <?= $lastRun ? 'for over 3 hours' : 'yet' ?>. Set up the cron job (see the install guide) so sources are checked automatically.</div>
         <?php endif; ?>

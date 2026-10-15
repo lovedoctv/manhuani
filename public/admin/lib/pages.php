@@ -10,6 +10,11 @@ defined('MANHUANI') || exit;
  * has hosting permission ticked, and removes the website copies when it doesn't.
  */
 
+function pages_missing(): bool
+{
+    return false;
+}
+
 const PAGE_TYPES = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp', IMAGETYPE_GIF => 'gif'];
 const PAGE_MIME = ['jpg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp', 'gif' => 'image/gif'];
 
