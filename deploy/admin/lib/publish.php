@@ -65,8 +65,8 @@ function publish_titles(string $base, array $onSite): void
     $list = [];
     $written = [];
     foreach ($titles as $t) {
-        $sources = db_all('SELECT connector, url FROM title_sources WHERE title_id = ? ORDER BY id', [$t['id']]);
-        $credits = array_map(fn ($x) => ['name' => connector_label($x['connector']), 'url' => $x['url']], $sources);
+        $sources = db_all('SELECT connector, external_id, url FROM title_sources WHERE title_id = ? ORDER BY id', [$t['id']]);
+        $credits = array_map(fn ($x) => ['name' => title_source_label($x), 'url' => $x['url']], $sources);
         $links = json_decode((string) $t['links'], true) ?: [];
         $item = [
             'slug' => $t['slug'],
@@ -97,6 +97,16 @@ function publish_titles(string $base, array $onSite): void
     }
     remove_unlisted("$base/title", $written);
     write_atomic("$base/titles.json", json_encode(['generated' => gmdate('c'), 'titles' => $list], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+}
+
+/** A connector's name, or for one of your own sources, the source's name. */
+function title_source_label(array $x): string
+{
+    if ($x['connector'] === 'source') {
+        $row = db_one('SELECT name FROM sources WHERE id = ?', [(int) strtok((string) $x['external_id'], ':')]);
+        return $row ? (string) $row['name'] : (string) parse_url((string) $x['url'], PHP_URL_HOST);
+    }
+    return connector_label($x['connector']);
 }
 
 function chapter_json(array $c): array
