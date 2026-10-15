@@ -4,7 +4,7 @@
 
 ```
 src/content/series/*.json ──┐
-src/content/blog/*.md ──────┼──> Astro build ──> deploy/ ──> cPanel copies to public_html
+src/content/blog/*.md ──────┼──> Astro build ──> deploy/ ──> cPanel copies to aduna.fit/manhuani/
 src/pages, components, css ─┘
 ```
 
@@ -19,7 +19,7 @@ Goal: paste website URLs, collect permitted manhua metadata and chapter updates,
 Planned pieces. **None of this is built yet.**
 
 ```
-public_html/
+aduna.fit/manhuani/   (the site folder)
   admin/            Password-protected PHP dashboard (runs on the existing shared hosting)
   data/live/        JSON written by the dashboard. The build never creates this folder,
                     so deploying the site never overwrites it.
