@@ -13,3 +13,9 @@ dist/
 .vscode/
 .idea/
 Thumbs.db
+
+# Crawler dashboard: private settings, database and generated live data stay on the server
+manhuani_private/
+*.sqlite
+*.sqlite-journal
+public/data/live/

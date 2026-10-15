@@ -54,7 +54,9 @@ const jsonLd = {
   <div class="container layout block" id="latest">
     <div class="content">
       <div class="section-head"><h1 class="h2">Latest Updates</h1></div>
-      <SeriesGrid items={items} eagerCount={page === 1 ? 0 : 4} />
+      <div data-live-latest={page === 1 && site.liveUpdates ? '' : undefined}>
+        <SeriesGrid items={items} eagerCount={page === 1 ? 0 : 4} />
+      </div>
       <Pagination current={page} total={total} url={pageUrl} />
     </div>
     <Sidebar />

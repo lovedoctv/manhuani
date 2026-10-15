@@ -69,4 +69,4 @@ document.querySelectorAll<HTMLButtonElement>('.bookmark-btn').forEach((btn) => {
   });
 });
 
-applyLiveUpdates();
+applyLiveUpdates().then(() => relativeTimes());

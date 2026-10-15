@@ -12,8 +12,9 @@ export default {
   description:
     'Manhuani tracks the latest manhua and manhwa chapter updates, with series guides, reviews and reading lists for fans of action, romance, fantasy and cultivation stories.',
   language: 'en',
-  // Phase 2: turn on once the crawler dashboard writes files to /data/live/.
-  liveUpdates: false,
+  // Show chapter updates collected by the crawler dashboard (admin/).
+  // Harmless before the crawler is installed: the page just shows what was built.
+  liveUpdates: true,
   // Number of series shown per page in "Latest Updates".
   perPage: 12,
   social: {

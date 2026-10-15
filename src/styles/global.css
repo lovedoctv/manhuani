@@ -160,6 +160,16 @@ button, input, select { font: inherit; color: inherit; }
 .chapter-pills a:hover { background: var(--accent); color: #fff; }
 .chapter-pills time { color: var(--muted); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* Live updates from the crawler (no cover art is copied; a coloured tile is drawn instead) */
+.live-cover {
+  position: absolute; inset: 0; display: grid; place-content: center; gap: 6px; padding: 12px; text-align: center; color: #fff;
+  background: linear-gradient(135deg, hsl(var(--h) 75% 55%), hsl(calc(var(--h) + 60) 70% 45%));
+}
+.live-cover b { font-size: 2.4rem; line-height: 1; opacity: 0.9; }
+.live-cover small { font-weight: 700; font-size: 0.85rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.type-badge.live { background: var(--accent); }
+.live-source { margin: 0; font-size: 0.78rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 /* ---------- Sidebar ---------- */
 .sidebar { display: grid; gap: 20px; min-width: 0; }
 .widget { min-width: 0; }

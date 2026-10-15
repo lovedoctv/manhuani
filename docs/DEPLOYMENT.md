@@ -33,6 +33,15 @@ You have already done steps 1 and 2 (SSH key and clone). They're listed here for
 5. Click **Deploy HEAD Commit**. This copies the new site into your website folder.
 6. Open https://aduna.fit/manhuani/ in the browser and refresh. A hard refresh (Ctrl+F5) skips the browser cache.
 
+## The crawler dashboard
+
+`deploy/` also contains the dashboard in `admin/`, which is PHP code with no secrets. Deploying never touches:
+
+- your settings and database in `~/manhuani_private/` (outside the website folder), or
+- the update files the crawler writes to `aduna.fit/manhuani/data/live/`.
+
+So you can deploy as often as you like. The first time, follow **[CRAWLER.md](CRAWLER.md)** to set it up.
+
 ## After the first deploy
 
 - **HTTPS.** If aduna.fit doesn't already redirect to https://, and its SSL certificate is active (cPanel > SSL/TLS Status), open `public/.htaccess` and uncomment the three lines under "Uncomment the next 3 lines". Then commit and deploy again.
