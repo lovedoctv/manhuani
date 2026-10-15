@@ -23,5 +23,6 @@ function prune_old_rows(): void
 {
     $cut = gmdate('Y-m-d H:i:s', time() - 86400 * (int) config('log_retention_days'));
     db_run('DELETE FROM logs WHERE created_at < ?', [$cut]);
+    db_run('DELETE FROM api_cache WHERE expires_at < ?', [now()]);
     db_run('DELETE FROM login_attempts WHERE attempted_at < ?', [gmdate('Y-m-d H:i:s', time() - 86400)]);
 }

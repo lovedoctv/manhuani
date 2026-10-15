@@ -141,6 +141,33 @@ if ($isPost) {
             $n = publish_updates();
             flash('success', "Website updated with $n update(s).");
             redirect('updates');
+        case 'connector_enable':
+        case 'connector_disable':
+            $name = (string) ($_POST['name'] ?? '');
+            $err = connector_set_enabled($name, $page === 'connector_enable', !empty($_POST['terms']));
+            flash($err ? 'error' : 'success', $err ?? (connector_label($name) . ($page === 'connector_enable' ? ' enabled. It runs with the next scheduled check.' : ' disabled.')));
+            redirect('connectors');
+        case 'connector_test':
+            @set_time_limit(90);
+            $name = (string) ($_POST['name'] ?? '');
+            $r = connector_test($name);
+            $_SESSION['test_result'] = ['name' => $name, 'lines' => $r['lines'], 'ok' => $r['ok']];
+            redirect('connectors');
+        case 'connector_run':
+            @set_time_limit(120);
+            $name = (string) ($_POST['name'] ?? '');
+            $st = connectors_run(true, $name);
+            if ($st['new'] || $st['titles']) {
+                publish_updates();
+            }
+            flash($st['errors'] ? 'error' : 'success', $st['checked'] ? connector_label($name) . ": {$st['titles']} new title(s), {$st['new']} new chapter(s)" . ($st['errors'] ? '. It failed, see Logs.' : '.') : 'Enable the connector first.');
+            redirect('connectors');
+        case 'title_hide':
+        case 'title_show':
+            db_run('UPDATE titles SET hidden = ? WHERE id = ?', [$page === 'title_hide' ? 1 : 0, $id]);
+            publish_updates();
+            flash('success', $page === 'title_hide' ? 'Title and its chapters hidden from the website.' : 'Title shown on the website.');
+            redirect('titles', array_filter(['q' => $_POST['q'] ?? '']));
         case 'logs_clear':
             db_run('DELETE FROM logs');
             log_info('Logs cleared');
@@ -273,7 +300,7 @@ switch ($page) {
                 <td><?= h($r['series_title']) ?></td>
                 <td><a href="<?= h($r['source_url']) ?>" target="_blank" rel="noopener noreferrer nofollow">Ch. <?= h(format_chapter($r['chapter_number'])) ?></a><?= $r['chapter_label'] ? ' <span class="muted small">' . h($r['chapter_label']) . '</span>' : '' ?></td>
                 <td class="nowrap"><?= h($r['release_date'] ? substr($r['release_date'], 0, 16) : '—') ?></td>
-                <td><?= h($r['source_name'] ?? '(removed)') ?></td>
+                <td><?= h($r['connector'] ? connector_label($r['connector']) : ($r['source_name'] ?? '(removed)')) ?></td>
                 <td class="small"><?= h($r['credit'] ?? '') ?></td>
                 <td class="nowrap">
                   <form method="post" action="<?= h(page_url($r['hidden'] ? 'update_show' : 'update_hide')) ?>" class="inline"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $r['id'] ?>"><input type="hidden" name="q" value="<?= h($q) ?>"><button class="link"><?= $r['hidden'] ? 'Show' : 'Hide' ?></button></form>
@@ -289,6 +316,102 @@ switch ($page) {
             <?php if ($p > 1): ?><a href="<?= h(page_url('updates', ['q' => $q, 'p' => $p - 1])) ?>">« Newer</a><?php endif; ?>
             <span>Page <?= $p ?> of <?= (int) ceil($total / $per) ?></span>
             <?php if ($p * $per < $total): ?><a href="<?= h(page_url('updates', ['q' => $q, 'p' => $p + 1])) ?>">Older »</a><?php endif; ?>
+          </nav>
+        <?php endif;
+        layout_end();
+        break;
+
+    case 'connectors':
+        $all = connectors_all();
+        $test = $_SESSION['test_result'] ?? null;
+        unset($_SESSION['test_result']);
+        $counts = [];
+        foreach (db_all('SELECT connector, COUNT(*) AS n FROM title_sources GROUP BY connector') as $r) {
+            $counts[$r['connector']] = (int) $r['n'];
+        }
+        layout_start('Connectors', 'connectors');
+        ?>
+        <div class="head"><h1>Connectors</h1></div>
+        <p class="muted">Official APIs that are published for programs to use. Enabled connectors run with the scheduled check: they add new manhwa and manhua titles and chapters to the site, and match titles across sites so each one is stored once. A connector that fails is retried later and doesn't stop the others.</p>
+        <?php if ($test && isset($all[$test['name'] ?? ''])): ?>
+          <div class="card test <?= $test['ok'] ? 'pass' : 'fail' ?>">
+            <h2>Test of <?= h(connector_label($test['name'])) ?>: <?= $test['ok'] ? 'works' : 'not working' ?></h2>
+            <ul class="checks"><?php foreach ($test['lines'] as [$lvl, $txt]): ?><li class="<?= h($lvl) ?>"><?= h($txt) ?></li><?php endforeach; ?></ul>
+          </div>
+        <?php endif; ?>
+        <div class="sources">
+        <?php foreach ($all as $name => $c): $def = $c['def']; $st = json_decode((string) $c['last_stats'], true) ?: []; ?>
+          <article class="card source">
+            <div class="source-head">
+              <div><h2><?= h($def['label']) ?></h2><a class="url" href="<?= h($def['docs']) ?>" target="_blank" rel="noopener noreferrer">API terms and docs</a></div>
+              <?= $c['enabled'] ? ((int) $c['fail_count'] > 0 ? badge('Enabled · failing', 'warn') : badge('Enabled', 'ok')) : badge('Off', 'muted') ?>
+            </div>
+            <p class="small"><?= h($def['does']) ?></p>
+            <p class="small muted"><b>Terms:</b> <?= h($def['terms']) ?></p>
+            <dl class="facts">
+              <div><dt>Every</dt><dd><?= connector_interval($name) ?> min</dd></div>
+              <div><dt>Last run</dt><dd><?= h(ago($c['last_run_at'])) ?></dd></div>
+              <div><dt>Last success</dt><dd><?= h(ago($c['last_success_at'])) ?></dd></div>
+              <div><dt>Next run</dt><dd><?= $c['enabled'] ? h(ago($c['next_run_at'] ?? now())) : '—' ?></dd></div>
+              <div><dt>Titles linked</dt><dd><?= $counts[$name] ?? 0 ?></dd></div>
+              <div><dt>Last result</dt><dd><?= $st ? (int) $st['titles'] . ' new · ' . (int) $st['new'] . ' ch. · ' . (int) $st['requests'] . ' req.' : '—' ?></dd></div>
+            </dl>
+            <?php if ($c['last_error']): ?><p class="small error-text">Last error<?= (int) $c['fail_count'] ? ' (' . (int) $c['fail_count'] . ' in a row)' : '' ?>: <?= h($c['last_error']) ?></p><?php endif; ?>
+            <div class="actions">
+              <form method="post" action="<?= h(page_url('connector_test')) ?>"><?= csrf_field() ?><input type="hidden" name="name" value="<?= h($name) ?>"><button class="btn small">Test</button></form>
+              <?php if ($c['enabled']): ?>
+                <form method="post" action="<?= h(page_url('connector_run')) ?>"><?= csrf_field() ?><input type="hidden" name="name" value="<?= h($name) ?>"><button class="btn small ghost">Run now</button></form>
+                <form method="post" action="<?= h(page_url('connector_disable')) ?>"><?= csrf_field() ?><input type="hidden" name="name" value="<?= h($name) ?>"><button class="btn small ghost">Disable</button></form>
+              <?php else: ?>
+                <form method="post" action="<?= h(page_url('connector_enable')) ?>" class="enable-form"><?= csrf_field() ?><input type="hidden" name="name" value="<?= h($name) ?>">
+                  <label class="check small"><input type="checkbox" name="terms" value="1" <?= $c['terms_accepted'] ? 'checked' : '' ?>> I accept <?= h($def['label']) ?>'s terms above</label>
+                  <button class="btn small ghost">Enable</button>
+                </form>
+              <?php endif; ?>
+            </div>
+          </article>
+        <?php endforeach; ?>
+        </div>
+        <?php
+        layout_end();
+        break;
+
+    case 'titles':
+        $q = trim((string) ($_GET['q'] ?? ''));
+        $p = max(1, (int) ($_GET['p'] ?? 1));
+        $per = 50;
+        $where = $q !== '' ? 'WHERE t.title LIKE ? OR t.alt_titles LIKE ?' : '';
+        $params = $q !== '' ? ['%' . $q . '%', '%' . $q . '%'] : [];
+        $total = (int) (db_one("SELECT COUNT(*) AS n FROM titles t $where", $params)['n'] ?? 0);
+        $rows = db_all("SELECT t.*, (SELECT COUNT(*) FROM updates u WHERE u.title_id = t.id) AS chapters FROM titles t $where ORDER BY t.created_at DESC, t.id DESC LIMIT $per OFFSET " . (($p - 1) * $per), $params);
+        layout_start('Titles', 'titles');
+        ?>
+        <div class="head"><h1>Titles <small class="muted">(<?= $total ?>)</small></h1></div>
+        <p class="muted">Titles the connectors found. Each one is shown on the site at <code>title/?s=…</code>, and in "New titles" on the home page. <b>Hide</b> removes a title and its chapters from the website.</p>
+        <form class="search" method="get"><input type="hidden" name="page" value="titles"><input type="search" name="q" value="<?= h($q) ?>" placeholder="Search titles"><button class="btn small">Search</button></form>
+        <div class="card table-wrap">
+          <table>
+            <thead><tr><th>Title</th><th>Type</th><th>Latest</th><th>Sources</th><th>Added</th><th></th></tr></thead>
+            <tbody>
+            <?php if (!$rows): ?><tr><td colspan="6" class="muted">No titles yet. Enable a connector on the Connectors page.</td></tr><?php endif; ?>
+            <?php foreach ($rows as $r): $srcs = array_column(db_all('SELECT connector FROM title_sources WHERE title_id = ?', [$r['id']]), 'connector'); ?>
+              <tr class="<?= $r['hidden'] ? 'hidden-row' : '' ?>">
+                <td><a href="<?= h('../title/?s=' . rawurlencode($r['slug'])) ?>" target="_blank" rel="noopener"><?= h($r['title']) ?></a></td>
+                <td><?= h($r['type'] ?? '—') ?></td>
+                <td class="nowrap"><?= $r['latest_chapter'] !== null ? 'Ch. ' . h(format_chapter($r['latest_chapter'])) . ' <span class="muted small">(' . (int) $r['chapters'] . ')</span>' : '—' ?></td>
+                <td class="small"><?= h(implode(', ', array_map('connector_label', $srcs))) ?></td>
+                <td class="nowrap"><?= h(ago($r['created_at'])) ?></td>
+                <td><form method="post" action="<?= h(page_url($r['hidden'] ? 'title_show' : 'title_hide')) ?>" class="inline"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $r['id'] ?>"><input type="hidden" name="q" value="<?= h($q) ?>"><button class="link"><?= $r['hidden'] ? 'Show' : 'Hide' ?></button></form></td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+        <?php if ($total > $per): ?>
+          <nav class="pager">
+            <?php if ($p > 1): ?><a href="<?= h(page_url('titles', ['q' => $q, 'p' => $p - 1])) ?>">« Newer</a><?php endif; ?>
+            <span>Page <?= $p ?> of <?= (int) ceil($total / $per) ?></span>
+            <?php if ($p * $per < $total): ?><a href="<?= h(page_url('titles', ['q' => $q, 'p' => $p + 1])) ?>">Older »</a><?php endif; ?>
           </nav>
         <?php endif;
         layout_end();
@@ -371,10 +494,13 @@ switch ($page) {
             (SELECT COUNT(*) FROM sources WHERE enabled = 1) AS enabled,
             (SELECT COUNT(*) FROM updates) AS updates,
             (SELECT COUNT(*) FROM updates WHERE created_at >= ?) AS today,
-            (SELECT COUNT(*) FROM logs WHERE level = \'error\' AND created_at >= ?) AS errors', [gmdate('Y-m-d H:i:s', time() - 86400), gmdate('Y-m-d H:i:s', time() - 86400)]);
+            (SELECT COUNT(*) FROM logs WHERE level = \'error\' AND created_at >= ?) AS errors,
+            (SELECT COUNT(*) FROM titles) AS titles,
+            (SELECT COUNT(*) FROM connectors WHERE enabled = 1) AS connectors', [gmdate('Y-m-d H:i:s', time() - 86400), gmdate('Y-m-d H:i:s', time() - 86400)]);
         $lastRun = meta_get('last_run_at');
         $recent = db_all('SELECT u.*, s.name AS source_name FROM updates u LEFT JOIN sources s ON s.id = u.source_id ORDER BY u.id DESC LIMIT 10');
         $cronStale = !$lastRun || ts($lastRun) < time() - 3 * 3600;
+        $failing = db_all('SELECT name, last_error FROM connectors WHERE enabled = 1 AND fail_count > 0');
         layout_start('Dashboard', 'dashboard');
         ?>
         <div class="head">
@@ -384,8 +510,13 @@ switch ($page) {
         <?php if ($cronStale): ?>
           <div class="alert warn">The scheduled check hasn't run <?= $lastRun ? 'for over 3 hours' : 'yet' ?>. Set up the cron job (see the install guide) so sources are checked automatically.</div>
         <?php endif; ?>
+        <?php foreach ($failing as $f): ?>
+          <div class="alert warn"><?= h(connector_label($f['name'])) ?> is failing (<?= h(rtrim((string) $f['last_error'], '.')) ?>). It will retry automatically. See <a href="<?= h(page_url('connectors')) ?>">Connectors</a>.</div>
+        <?php endforeach; ?>
         <div class="stats">
           <div class="card stat"><b><?= (int) $counts['enabled'] ?> / <?= (int) $counts['sources'] ?></b><span>sources enabled</span></div>
+          <div class="card stat"><b><?= (int) $counts['connectors'] ?> / <?= count(connector_defs()) ?></b><span>connectors enabled</span></div>
+          <div class="card stat"><b><?= (int) $counts['titles'] ?></b><span>titles found</span></div>
           <div class="card stat"><b><?= (int) $counts['updates'] ?></b><span>updates stored</span></div>
           <div class="card stat"><b><?= (int) $counts['today'] ?></b><span>new in last 24 h</span></div>
           <div class="card stat <?= $counts['errors'] ? 'has-errors' : '' ?>"><b><?= (int) $counts['errors'] ?></b><span>errors in last 24 h</span></div>
@@ -398,7 +529,7 @@ switch ($page) {
             <tbody>
             <?php if (!$recent): ?><tr><td colspan="4" class="muted">No updates yet. Add a source, test it, enable it, and set up the cron job.</td></tr><?php endif; ?>
             <?php foreach ($recent as $r): ?>
-              <tr><td><?= h($r['series_title']) ?></td><td><a href="<?= h($r['source_url']) ?>" target="_blank" rel="noopener noreferrer nofollow">Ch. <?= h(format_chapter($r['chapter_number'])) ?></a></td><td><?= h($r['source_name'] ?? '') ?></td><td class="nowrap"><?= h(ago($r['created_at'])) ?></td></tr>
+              <tr><td><?= h($r['series_title']) ?></td><td><a href="<?= h($r['source_url']) ?>" target="_blank" rel="noopener noreferrer nofollow">Ch. <?= h(format_chapter($r['chapter_number'])) ?></a></td><td><?= h($r['connector'] ? connector_label($r['connector']) : ($r['source_name'] ?? '')) ?></td><td class="nowrap"><?= h(ago($r['created_at'])) ?></td></tr>
             <?php endforeach; ?>
             </tbody>
           </table>

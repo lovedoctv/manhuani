@@ -1,0 +1,10 @@
+---
+// One title found by the dashboard's connectors (title/?s=<slug>). The page is filled in by
+// src/scripts/live.ts from data/live/title/<slug>.json, so new titles need no rebuild.
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Title" description="Series details, chapters and where to read them." noindex>
+  <div data-live-title>
+    <div class="container block"><p class="muted">Loading…</p></div>
+  </div>
+</Base>

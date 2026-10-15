@@ -1,0 +1,20 @@
+---
+// Every title the dashboard's connectors found, newest first (from data/live/titles.json).
+import { url } from '../lib/data';
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+---
+<Base title="New Manhwa & Manhua Titles" description="Newly found manhwa and manhua series with their latest chapters and where to read them.">
+  <div class="container block">
+    <Breadcrumbs items={[{ name: 'New Titles', href: url('/new-titles/') }]} />
+    <div class="section-head"><h1 class="h2">New Titles</h1></div>
+    <section data-live-new-titles>
+      <div class="type-filters">
+        <button class="btn btn-ghost" type="button" data-type-filter="" aria-pressed="true">All</button>
+        <button class="btn btn-ghost" type="button" data-type-filter="manhwa" aria-pressed="false">Manhwa</button>
+        <button class="btn btn-ghost" type="button" data-type-filter="manhua" aria-pressed="false">Manhua</button>
+      </div>
+      <div class="series-grid"><p class="muted">No new titles yet.</p></div>
+    </section>
+  </div>
+</Base>

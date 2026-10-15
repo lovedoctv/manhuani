@@ -7,7 +7,7 @@ if (!defined('MANHUANI')) {
     exit;
 }
 
-const MANHUANI_VERSION = '1.1.0';
+const MANHUANI_VERSION = '1.2.0';
 
 require __DIR__ . '/util.php';
 require __DIR__ . '/db.php';
@@ -17,6 +17,8 @@ require __DIR__ . '/robots.php';
 require __DIR__ . '/feeds.php';
 require __DIR__ . '/extract.php';
 require __DIR__ . '/apis.php';
+require __DIR__ . '/titles.php';
+require __DIR__ . '/connectors.php';
 require __DIR__ . '/sources.php';
 require __DIR__ . '/crawler.php';
 require __DIR__ . '/publish.php';
@@ -110,6 +112,18 @@ function default_config(string $dir): array
         'mangadex_api' => 'https://api.mangadex.org',
         'mangadex_language' => 'en',                 // chapter language to follow on MangaDex
         'anilist_api' => 'https://graphql.anilist.co',
+        // Built-in connectors (dashboard > Connectors)
+        'discover_types' => ['manhua', 'manhwa'],      // which titles connectors add to the site
+        'mangadex_original_languages' => ['ko', 'zh', 'zh-hk'],
+        'mangadex_discover_pages' => 2,              // pages of 100 newest chapters read per run
+        'mangaupdates_api' => 'https://api.mangaupdates.com/v1',
+        'mangaupdates_lookups_per_run' => 9,         // new series looked up per run
+        'bangumi_api' => 'https://api.bgm.tv',
+        'ann_api' => 'https://cdn.animenewsnetwork.com/encyclopedia',
+        'enrich_per_run' => 4,                       // titles matched per run on AniList, Bangumi and ANN
+        'connector_max_requests' => 12,              // request limit for each connector per run
+        'connector_intervals' => [],                 // e.g. ['mangadex' => 30] (minutes)
+        'titles_published' => 300,                   // how many discovered titles the website lists
         'allow_private_hosts' => false,              // only for local testing
     ];
 }

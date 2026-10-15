@@ -5,5 +5,14 @@ import site from '../../site.config.mjs';
 ---
 <TextPage title="About Us" path={url('/about/')} description={`About ${site.name}: who we are and what we cover.`}>
   <p>{site.name} is a fan-run site for manhua and manhwa readers. We track new chapter releases, write series guides and put together reading lists so you can find your next favourite story.</p>
+  <h2>Where our data comes from</h2>
+  <p>New titles and chapter lists are collected through official APIs that allow this use, and every chapter links to the site that publishes it. We don't copy chapter pages or cover art.</p>
+  <ul>
+    <li><a href="https://mangadex.org" rel="noopener" target="_blank">MangaDex</a> and its scanlation groups, credited on each chapter</li>
+    <li><a href="https://www.mangaupdates.com" rel="noopener" target="_blank">MangaUpdates</a> for chapter release information</li>
+    <li><a href="https://anilist.co" rel="noopener" target="_blank">AniList</a> for series details and official reading sites</li>
+    <li><a href="https://bgm.tv" rel="noopener" target="_blank">Bangumi</a> for manhua details</li>
+    <li><a href="https://www.animenewsnetwork.com/encyclopedia/" rel="noopener" target="_blank">Anime News Network</a> Encyclopedia for series details</li>
+  </ul>
   <p>Edit this page in <code>src/pages/about.astro</code> to tell readers who you are and why you started the site.</p>
 </TextPage>

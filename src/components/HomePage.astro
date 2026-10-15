@@ -62,6 +62,13 @@ const jsonLd = {
     <Sidebar />
   </div>
 
+  {page === 1 && site.liveUpdates && (
+    <section class="container block" data-live-new-titles data-limit="12" hidden>
+      <div class="section-head"><h2>New Titles</h2><a href={url('/new-titles/')}>View all</a></div>
+      <div class="series-grid"></div>
+    </section>
+  )}
+
   {page === 1 && (
     <section class="container block intro-block">
       <h2>Read manhua and manhwa updates on {site.name}</h2>
