@@ -38,19 +38,24 @@ function source_save(?int $id, array $in): array
     $interval = max((int) config('min_interval_minutes'), (int) ($in['interval_minutes'] ?? config('default_interval_minutes')));
     $permission = !empty($in['permission_confirmed']) ? 1 : 0;
     $notes = str_limit((string) ($in['notes'] ?? ''), 1000);
+    $hosting = !empty($in['hosting_allowed']) ? 1 : 0;
+    $hostingNote = str_limit(trim((string) ($in['hosting_note'] ?? '')), 500);
     if ($url === null) {
         return [null, 'Please enter a valid web address starting with http:// or https://'];
     }
     if ($name === '') {
         $name = is_mangadex_url($url) ? 'MangaDex' : (parse_url($url, PHP_URL_HOST) ?: $url);
     }
+    if ($hosting && $hostingNote === '') {
+        return [null, 'To turn on hosting permission, say where the permission came from (for example "Email from the publisher, 2026-10-20").'];
+    }
     $dupe = db_one('SELECT id FROM sources WHERE url = ? AND id <> ?', [$url, $id ?? 0]);
     if ($dupe) {
         return [null, 'That address is already saved as a source.'];
     }
     if ($id === null) {
-        db_run('INSERT INTO sources (name, url, interval_minutes, permission_confirmed, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [$name, $url, $interval, $permission, $notes, now(), now()]);
+        db_run('INSERT INTO sources (name, url, interval_minutes, permission_confirmed, notes, hosting_allowed, hosting_note, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [$name, $url, $interval, $permission, $notes, $hosting, $hostingNote ?: null, now(), now()]);
         $id = (int) db()->lastInsertId();
         log_info("Source added: $name ($url)", $id);
         return [$id, null];
@@ -60,8 +65,11 @@ function source_save(?int $id, array $in): array
         return [null, 'Source not found.'];
     }
     $urlChanged = $old['url'] !== $url;
-    db_run('UPDATE sources SET name = ?, url = ?, interval_minutes = ?, permission_confirmed = ?, notes = ?, updated_at = ? WHERE id = ?',
-        [$name, $url, $interval, $permission, $notes, now(), $id]);
+    db_run('UPDATE sources SET name = ?, url = ?, interval_minutes = ?, permission_confirmed = ?, notes = ?, hosting_allowed = ?, hosting_note = ?, updated_at = ? WHERE id = ?',
+        [$name, $url, $interval, $permission, $notes, $hosting, $hostingNote ?: null, now(), $id]);
+    if ((int) $old['hosting_allowed'] !== $hosting) {
+        log_info("Hosting permission for $name turned " . ($hosting ? "on ($hostingNote)" : 'off; its uploaded pages are no longer shown'), $id);
+    }
     if ($urlChanged) {
         // A new address must be checked again before it can run.
         db_run("UPDATE sources SET feed_url = NULL, method = NULL, enabled = 0, robots_status = 'unknown', check_summary = NULL, etag = NULL, last_modified = NULL WHERE id = ?", [$id]);
@@ -103,6 +111,9 @@ function source_delete(int $id, bool $withUpdates): void
         return;
     }
     if ($withUpdates) {
+        foreach (db_all('SELECT id FROM updates WHERE source_id = ? AND pages IS NOT NULL', [$id]) as $u) {
+            pages_clear((int) $u['id']);
+        }
         db_run('DELETE FROM updates WHERE source_id = ?', [$id]);
     }
     db_run('DELETE FROM sources WHERE id = ?', [$id]);

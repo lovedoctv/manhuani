@@ -7,7 +7,7 @@ if (!defined('MANHUANI')) {
     exit;
 }
 
-const MANHUANI_VERSION = '1.2.0';
+const MANHUANI_VERSION = '1.3.0';
 
 require __DIR__ . '/util.php';
 require __DIR__ . '/db.php';
@@ -22,6 +22,7 @@ require __DIR__ . '/connectors.php';
 require __DIR__ . '/sources.php';
 require __DIR__ . '/crawler.php';
 require __DIR__ . '/publish.php';
+require __DIR__ . '/pages.php';
 
 /** @return list<string> what this server is missing, empty when everything is there */
 function missing_requirements(): array
@@ -124,6 +125,8 @@ function default_config(string $dir): array
         'connector_max_requests' => 12,              // request limit for each connector per run
         'connector_intervals' => [],                 // e.g. ['mangadex' => 30] (minutes)
         'titles_published' => 300,                   // how many discovered titles the website lists
+        'max_pages_per_chapter' => 300,              // uploaded pages per chapter (sources with hosting permission)
+        'max_page_bytes' => 10485760,                // largest page image you can upload (10 MB)
         'allow_private_hosts' => false,              // only for local testing
     ];
 }

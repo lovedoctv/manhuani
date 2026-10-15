@@ -12,9 +12,13 @@
 //
 // "credit" is the scanlation group for chapters from MangaDex, whose terms require crediting them.
 // "readable" is false for chapters only known from MangaUpdates: their link opens the release info.
+// "titleSlug" means the chapter has a reading page on this site: chapter/?s=<titleSlug>&c=<number>.
+// "pages" lists page images you uploaded for sources with hosting permission (data/pages/...).
+//   Without them, the chapter page says it isn't hosted here and links to the original source.
 
 interface LiveChapter {
   number: number; title?: string | null; date: string; sourceUrl?: string; source?: string; credit?: string | null; readable?: boolean;
+  titleSlug?: string | null; pages?: string[];
 }
 interface TitleSummary {
   slug: string; title: string; type: string | null; status: string | null; year: number | null; genres: string[];
@@ -28,7 +32,7 @@ interface TitleDetail extends TitleSummary {
 interface LiveUpdate {
   series: string; slug: string; onSite: boolean; cover: string | null;
   chapter: number; title: string | null; date: string; sourceUrl: string; source: string; credit?: string | null;
-  titlePage?: boolean; readable?: boolean;
+  titlePage?: boolean; readable?: boolean; titleSlug?: string | null; hosted?: boolean;
 }
 
 const via = (source?: string, credit?: string | null) => [source, credit].filter(Boolean).map((s) => esc(s!)).join(' · ');
@@ -38,6 +42,10 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const safeUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : '#');
 const chapterSlug = (n: number) => String(n).replace('.', '-');
 const titleHref = (slug: string) => `${BASE}title/?s=${encodeURIComponent(slug)}`;
+const chapterHref = (slug: string, n: number) => `${BASE}chapter/?s=${encodeURIComponent(slug)}&c=${n}`;
+/** Where a crawled chapter opens: its reading page here, or (older data) the original source. */
+const chapterLink = (titleSlug: string | null | undefined, n: number, sourceUrl?: string) =>
+  titleSlug ? `href="${esc(chapterHref(titleSlug, n))}"` : `href="${esc(safeUrl(sourceUrl ?? '#'))}" rel="nofollow noopener" target="_blank"`;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const words = (s: string) => s.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -57,10 +65,10 @@ async function getJson<T>(path: string): Promise<T | null> {
 }
 
 export async function applyLiveUpdates() {
-  await Promise.all([liveSeriesChapters(), liveLatestUpdates(), liveNewTitles(), liveTitlePage()]);
+  await Promise.all([liveSeriesChapters(), liveLatestUpdates(), liveNewTitles(), liveTitlePage(), liveChapterPage()]);
 }
 
-/** Series page: add newer chapters found by the crawler (they link to the original source). */
+/** Series page: add newer chapters found by the crawler (they open on the chapter page). */
 async function liveSeriesChapters() {
   const list = document.querySelector<HTMLUListElement>('[data-live-series]');
   if (!list) return;
@@ -73,7 +81,7 @@ async function liveSeriesChapters() {
   for (const c of fresh) {
     const li = document.createElement('li');
     li.dataset.n = String(c.number);
-    li.innerHTML = `<a href="${esc(safeUrl(c.sourceUrl!))}" rel="nofollow noopener" target="_blank"><span>Chapter ${c.number}${c.title ? ' – ' + esc(c.title) : ''} <em class="new-badge">NEW</em>${c.source || c.credit ? ` <small class="live-credit">via ${via(c.source, c.credit)}</small>` : ''}</span><time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></a>`;
+    li.innerHTML = `<a ${chapterLink(c.titleSlug, c.number, c.sourceUrl)}><span>Chapter ${c.number}${c.title ? ' – ' + esc(c.title) : ''} <em class="new-badge">NEW</em>${c.source || c.credit ? ` <small class="live-credit">via ${via(c.source, c.credit)}</small>` : ''}</span><time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></a>`;
     list.prepend(li);
   }
 }
@@ -110,10 +118,8 @@ function cardHtml(u: LiveUpdate, chapters: LiveUpdate[]) {
     : initialsCover(u.series, u.slug);
   const pills = chapters
     .map((c) => {
-      // Chapters on your own site open there; crawled ones open at their original source.
-      const href = esc(safeUrl(c.sourceUrl));
-      const hint = c.readable === false ? ` title="Release info on ${esc(c.source)}"` : '';
-      return `<li><a href="${href}" rel="nofollow noopener" target="_blank"${hint}>Chapter ${c.chapter}</a><time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></li>`;
+      // Crawled chapters open on their chapter page here, which links to the original source.
+      return `<li><a ${chapterLink(c.titleSlug, c.chapter, c.sourceUrl)}>Chapter ${c.chapter}</a><time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></li>`;
     })
     .join('');
   return `
@@ -183,10 +189,12 @@ async function liveTitlePage() {
   document.title = `${t.title} – ${document.title.split(' | ').pop()}`;
   const reads = t.links.filter((l) => l.kind === 'read');
   const infos = t.links.filter((l) => l.kind === 'info');
+  const latest = t.chapters[0];
+  const first = t.chapters[t.chapters.length - 1];
   const link = (l: { name: string; url: string }, cls: string) => `<a class="${cls}" href="${esc(safeUrl(l.url))}" rel="nofollow noopener" target="_blank">${esc(l.name)}</a>`;
   const chapters = t.chapters.map((c) => `
-    <li data-n="${c.number}"><a href="${esc(safeUrl(c.sourceUrl ?? '#'))}" rel="nofollow noopener" target="_blank"${c.readable === false ? ` title="Release info on ${esc(c.source ?? '')}"` : ''}>
-      <span>Chapter ${c.number}${c.title ? ' – ' + esc(c.title) : ''}<small class="live-credit">${c.readable === false ? 'Release info · ' : ''}via ${via(c.source, c.credit)}</small></span>
+    <li data-n="${c.number}"><a href="${esc(chapterHref(t.slug, c.number))}">
+      <span>Chapter ${c.number}${c.title ? ' – ' + esc(c.title) : ''}<small class="live-credit">${c.pages?.length ? 'Read here · ' : c.readable === false ? 'Release info · ' : ''}Source: ${via(c.source, c.credit)}</small></span>
       <time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></a></li>`).join('');
   root.innerHTML = `
 <div class="series-hero"><div class="container">
@@ -203,9 +211,10 @@ async function liveTitlePage() {
         ${t.year ? `<div><dt>Released</dt><dd>${t.year}</dd></div>` : ''}
         ${t.rating !== null ? `<div><dt>Rating</dt><dd>${t.rating} / 5</dd></div>` : ''}
         <div><dt>Chapters</dt><dd>${t.chapters.length || '—'}</dd></div>
+        ${t.sources.length ? `<div><dt>Source</dt><dd>${esc(t.sources.join(', '))}</dd></div>` : ''}
       </dl>
       ${t.genres.length ? `<div class="genre-tags">${t.genres.slice(0, 10).map((g) => `<span>${esc(words(g))}</span>`).join('')}</div>` : ''}
-      <div class="series-actions">${reads.map((l, i) => link({ ...l, name: 'Read on ' + l.name }, i ? 'btn btn-ghost' : 'btn')).join('')}</div>
+      <div class="series-actions">${first ? `<a class="btn" href="${esc(chapterHref(t.slug, first.number))}">Chapter ${first.number}</a>` : ''}${latest && latest !== first ? `<a class="btn" href="${esc(chapterHref(t.slug, latest.number))}">Latest: Chapter ${latest.number}</a>` : ''}${reads.map((l) => link({ ...l, name: 'Visit original source' + (reads.length > 1 ? ` (${l.name})` : '') }, 'btn btn-ghost')).join('')}</div>
     </div>
   </div>
 </div></div>
@@ -218,7 +227,58 @@ async function liveTitlePage() {
     <h2>Sources</h2>
     <p class="muted small">Details and chapter lists come from ${t.credits.map((c) => (c.url ? link({ name: c.name, url: c.url }, '') : esc(c.name))).join(', ')}.
     ${infos.filter((l) => !t.credits.some((c) => c.url === l.url)).map((l) => link(l, '')).join(' · ')}
-    Chapters open on the site that publishes them.</p>
+    Each chapter page names its original source and links to it.</p>
   </section>
 </div>`;
+}
+
+/** chapter/?s=<slug>&c=<number>: one crawled chapter, read here when its pages are hosted. */
+async function liveChapterPage() {
+  const root = document.querySelector<HTMLElement>('[data-live-chapter]');
+  if (!root) return;
+  const params = new URLSearchParams(location.search);
+  const slug = params.get('s') ?? '';
+  const num = params.get('c') ?? '';
+  const t = /^[a-z0-9-]{1,200}$/.test(slug) && /^\d{1,5}(\.\d{1,2})?$/.test(num)
+    ? await getJson<TitleDetail>(`data/live/title/${slug}.json`) : null;
+  const list = t ? [...t.chapters].sort((a, b) => a.number - b.number) : [];
+  const i = list.findIndex((c) => c.number === Number(num));
+  if (!t || i < 0) {
+    root.innerHTML = `<div class="container block"><h1>Chapter not found</h1><p class="muted">It may have been removed. ${t ? `<a href="${esc(titleHref(t.slug))}">See all chapters of ${esc(t.title)}</a>.` : `<a href="${BASE}">Back to the home page</a>.`}</p></div>`;
+    return;
+  }
+  const c = list[i];
+  const prev = list[i - 1];
+  const next = list[i + 1];
+  const seriesHref = t.onSite ? `${BASE}manga/${t.slug}/` : titleHref(t.slug);
+  const name = `${t.title} Chapter ${c.number}`;
+  document.title = `${name} – ${document.title.split(' | ').pop()}`;
+  const source = c.source || t.sources[0] || 'the original source';
+  const original = c.sourceUrl ? safeUrl(c.sourceUrl) : '#';
+  const visit = (cls: string) => `<a class="${cls}" href="${esc(original)}" rel="nofollow noopener" target="_blank">Visit original source</a>`;
+  const pages = (c.pages ?? []).filter((p) => /^data\/pages\/\d+\/\d{3,4}\.(jpg|png|webp|gif)$/.test(p));
+  const nav = (jump: boolean) => `<nav class="reader-nav" aria-label="Chapter navigation">
+      ${prev ? `<a class="btn btn-ghost" href="${esc(chapterHref(t.slug, prev.number))}" rel="prev">&laquo; Prev</a>` : '<span class="btn btn-ghost disabled">&laquo; Prev</span>'}
+      ${jump ? `<select class="chapter-jump" aria-label="Jump to chapter">${[...list].reverse().map((x) => `<option value="${esc(chapterHref(t.slug, x.number))}"${x === c ? ' selected' : ''}>Chapter ${x.number}</option>`).join('')}</select>` : `<a class="btn btn-ghost" href="${esc(seriesHref)}">All Chapters</a>`}
+      ${next ? `<a class="btn" href="${esc(chapterHref(t.slug, next.number))}" rel="next">Next &raquo;</a>` : '<span class="btn disabled">Next &raquo;</span>'}
+    </nav>`;
+  const body = pages.length
+    ? pages.map((p, n) => `<img src="${esc(BASE + p)}" alt="${esc(name)} page ${n + 1}" loading="${n < 2 ? 'eager' : 'lazy'}" decoding="async">`).join('')
+    : `<div class="reader-empty">
+        <p>${c.readable === false
+          ? `Only the release details of this chapter are known, from ${esc(source)}. It isn't hosted on Aduna.fit.`
+          : `This chapter isn't hosted on Aduna.fit. You can read it on ${esc(source)}.`}</p>
+        ${visit('btn')}
+      </div>`;
+  root.innerHTML = `
+<div class="container reader-wrap">
+  <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="${BASE}">Home</a></li><li><a href="${esc(seriesHref)}">${esc(t.title)}</a></li><li><span>Chapter ${c.number}</span></li></ol></nav>
+  <h1 class="reader-title">${esc(name)}${c.title ? `<small> – ${esc(c.title)}</small>` : ''}</h1>
+  <p class="muted center">Released <time datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time> · Source: <strong>${via(source, c.credit)}</strong></p>
+  ${pages.length ? `<p class="center">${visit('btn btn-ghost')}</p>` : ''}
+  ${nav(true)}
+  <div class="reader">${body}</div>
+  ${nav(false)}
+</div>`;
+  root.querySelector<HTMLSelectElement>('.chapter-jump')?.addEventListener('change', (e) => (location.href = (e.target as HTMLSelectElement).value));
 }

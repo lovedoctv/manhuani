@@ -218,6 +218,15 @@ function db_migrate(): void
             db()->exec("ALTER TABLE updates ADD COLUMN $col $def");
         }
     }
+    // Schema 4: chapter pages you have permission to host (lib/pages.php).
+    foreach (['hosting_allowed' => 'INTEGER NOT NULL DEFAULT 0', 'hosting_note' => ($mysql ? 'VARCHAR(500)' : 'TEXT') . ' NULL'] as $col => $def) {
+        if (!db_has_column('sources', $col)) {
+            db()->exec("ALTER TABLE sources ADD COLUMN $col $def");
+        }
+    }
+    if (!db_has_column('updates', 'pages')) {
+        db()->exec('ALTER TABLE updates ADD COLUMN pages TEXT NULL');
+    }
     $indexes = [
         'idx_updates_created' => 'updates (created_at)',
         'idx_updates_slug' => 'updates (series_slug)',
@@ -241,7 +250,7 @@ function db_migrate(): void
     meta_set('schema_version', (string) DB_SCHEMA_VERSION);
 }
 
-const DB_SCHEMA_VERSION = 3;
+const DB_SCHEMA_VERSION = 4;
 
 /** Runs db_migrate() when the database is older than this code, so updates need no manual step. */
 function db_ensure_schema(): void

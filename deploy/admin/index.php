@@ -85,6 +85,12 @@ if (!is_logged_in()) {
 // ---------- Actions (POST only, CSRF protected) ----------
 if ($isPost) {
     if (!csrf_ok()) {
+        if ($page === 'pages_upload') {
+            // PHP drops the whole form when an upload is bigger than post_max_size.
+            $tooBig = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > ini_bytes((string) ini_get('post_max_size'));
+            flash('error', $tooBig ? 'That upload was larger than your server allows in one go (' . ini_get('post_max_size') . '). Upload fewer pages at a time.' : 'Your session expired. Please try again.');
+            redirect('chapter_pages', ['id' => (int) ($_GET['id'] ?? 0)]);
+        }
         flash('error', 'Your session expired. Please try again.');
         redirect($page === 'logout' ? 'dashboard' : $page);
     }
@@ -99,6 +105,7 @@ if ($isPost) {
                 flash('error', $err);
                 redirect('source_form', $id ? ['id' => $id] : []);
             }
+            publish_updates(); // hosting permission may have changed
             flash('success', $id ? 'Source saved.' : 'Source added. Click "Test" to check whether it can be used.');
             redirect('sources');
         case 'source_test':
@@ -133,6 +140,7 @@ if ($isPost) {
             flash('success', $page === 'update_hide' ? 'Update hidden from the website.' : 'Update shown on the website.');
             redirect('updates', array_filter(['q' => $_POST['q'] ?? '']));
         case 'update_delete':
+            pages_clear($id);
             db_run('DELETE FROM updates WHERE id = ?', [$id]);
             publish_updates();
             flash('success', 'Update deleted.');
@@ -168,6 +176,27 @@ if ($isPost) {
             publish_updates();
             flash('success', $page === 'title_hide' ? 'Title and its chapters hidden from the website.' : 'Title shown on the website.');
             redirect('titles', array_filter(['q' => $_POST['q'] ?? '']));
+        case 'pages_upload':
+            @set_time_limit(120);
+            $u = chapter_for_pages($id);
+            if (!$u) {
+                flash('error', 'Chapter not found.');
+                redirect('updates');
+            }
+            [$added, $problems] = pages_upload($u, $_FILES['pages'] ?? []);
+            publish_updates();
+            if ($added) {
+                flash('success', "$added page(s) added.");
+            }
+            foreach ($problems ?: ($added ? [] : ['Choose one or more images first.']) as $msg) {
+                flash('error', $msg);
+            }
+            redirect('chapter_pages', ['id' => $id]);
+        case 'pages_clear':
+            pages_clear($id);
+            publish_updates();
+            flash('success', 'All pages of this chapter were deleted.');
+            redirect('chapter_pages', ['id' => $id]);
         case 'logs_clear':
             db_run('DELETE FROM logs');
             log_info('Logs cleared');
@@ -216,6 +245,7 @@ switch ($page) {
               <div><dt>Next check</dt><dd><?= $s['enabled'] ? h(ago($s['next_check_at'] ?? now())) : '—' ?></dd></div>
             </dl>
             <?php if ($s['feed_url']): ?><p class="small muted"><?= $s['method'] === 'mangadex' ? 'API' : 'Feed' ?>: <?= h($s['feed_url']) ?></p><?php endif; ?>
+            <?php if (!empty($s['hosting_allowed'])): ?><p class="small">Hosting permission: yes<?= $s['hosting_note'] ? ' · ' . h($s['hosting_note']) : '' ?></p><?php endif; ?>
             <?php if (!$s['permission_confirmed']): ?><p class="small warn-text">Permission not confirmed yet. Edit the source to confirm.</p><?php endif; ?>
             <?php if ($s['last_error']): ?><p class="small error-text">Last error: <?= h($s['last_error']) ?></p><?php endif; ?>
             <div class="actions">
@@ -268,6 +298,15 @@ switch ($page) {
             <input type="checkbox" name="permission_confirmed" value="1" <?= !empty($s['permission_confirmed']) ? 'checked' : '' ?>>
             I have checked this site's terms and I'm allowed to collect its chapter metadata (titles, chapter numbers, dates and links).
           </label>
+          <fieldset class="hosting">
+            <legend>Hosting permission (optional)</legend>
+            <label class="check">
+              <input type="checkbox" name="hosting_allowed" value="1" <?= !empty($s['hosting_allowed']) ? 'checked' : '' ?>>
+              I have written permission from the publisher or rights holder to show this source's chapter pages on Aduna.fit.
+            </label>
+            <label>Where the permission came from <input type="text" name="hosting_note" maxlength="500" placeholder="e.g. Email from the publisher, 2026-10-20" value="<?= h($s['hosting_note'] ?? '') ?>"></label>
+            <p class="small muted">With this on, you can upload pages for this source's chapters on the Updates page, and visitors read them on your site. The crawler never downloads pages itself. Without it, visitors get a "Visit original source" link. Untick it and its pages disappear from the website at once.</p>
+          </fieldset>
           <p class="small muted">For MangaDex, ticking this box also means you accept <a href="https://api.mangadex.org/docs/" target="_blank" rel="noopener noreferrer">its API terms</a>: your site must not run ads or paid services, MangaDex and the scanlation group are credited on every update (this happens automatically), and you remove updates if a group asks.</p>
           <div class="actions"><button class="btn">Save</button><a class="btn ghost" href="<?= h(page_url('sources')) ?>">Cancel</a></div>
         </form>
@@ -282,7 +321,7 @@ switch ($page) {
         $where = $q !== '' ? 'WHERE u.series_title LIKE ?' : '';
         $params = $q !== '' ? ['%' . $q . '%'] : [];
         $total = (int) (db_one("SELECT COUNT(*) AS n FROM updates u $where", $params)['n'] ?? 0);
-        $rows = db_all("SELECT u.*, s.name AS source_name FROM updates u LEFT JOIN sources s ON s.id = u.source_id $where ORDER BY COALESCE(u.release_date, u.created_at) DESC, u.id DESC LIMIT $per OFFSET " . (($p - 1) * $per), $params);
+        $rows = db_all("SELECT u.*, s.name AS source_name, s.hosting_allowed FROM updates u LEFT JOIN sources s ON s.id = u.source_id $where ORDER BY COALESCE(u.release_date, u.created_at) DESC, u.id DESC LIMIT $per OFFSET " . (($p - 1) * $per), $params);
         layout_start('Updates', 'updates');
         ?>
         <div class="head">
@@ -303,6 +342,7 @@ switch ($page) {
                 <td><?= h($r['connector'] ? connector_label($r['connector']) : ($r['source_name'] ?? '(removed)')) ?></td>
                 <td class="small"><?= h($r['credit'] ?? '') ?></td>
                 <td class="nowrap">
+                  <?php if (!empty($r['hosting_allowed']) || $r['pages'] !== null): ?><a class="link" href="<?= h(page_url('chapter_pages', ['id' => $r['id']])) ?>">Pages (<?= count(update_pages($r)) ?>)</a><?php endif; ?>
                   <form method="post" action="<?= h(page_url($r['hidden'] ? 'update_show' : 'update_hide')) ?>" class="inline"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $r['id'] ?>"><input type="hidden" name="q" value="<?= h($q) ?>"><button class="link"><?= $r['hidden'] ? 'Show' : 'Hide' ?></button></form>
                   <form method="post" action="<?= h(page_url('update_delete')) ?>" class="inline"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $r['id'] ?>"><input type="hidden" name="q" value="<?= h($q) ?>"><button class="link bad">Delete</button></form>
                 </td>
@@ -317,6 +357,72 @@ switch ($page) {
             <span>Page <?= $p ?> of <?= (int) ceil($total / $per) ?></span>
             <?php if ($p * $per < $total): ?><a href="<?= h(page_url('updates', ['q' => $q, 'p' => $p + 1])) ?>">Older »</a><?php endif; ?>
           </nav>
+        <?php endif;
+        layout_end();
+        break;
+
+    case 'page_image':
+        // Shows an uploaded page to you on the dashboard (the originals are private).
+        $u = chapter_for_pages((int) ($_GET['id'] ?? 0));
+        $name = (string) ($_GET['f'] ?? '');
+        $file = $u && in_array($name, update_pages($u), true) ? pages_private_dir((int) $u['id']) . "/$name" : null;
+        if ($file === null || !is_file($file)) {
+            http_response_code(404);
+            exit;
+        }
+        header('Content-Type: ' . PAGE_MIME[pathinfo($name, PATHINFO_EXTENSION)]);
+        header('Content-Length: ' . filesize($file));
+        readfile($file);
+        exit;
+
+    case 'chapter_pages':
+        $u = chapter_for_pages((int) ($_GET['id'] ?? 0));
+        if (!$u) {
+            flash('error', 'Chapter not found.');
+            redirect('updates');
+        }
+        $pages = update_pages($u);
+        $hiddenTitle = $u['title_id'] && ($t = title_get((int) $u['title_id'])) && $t['hidden'];
+        $shown = $pages && !empty($u['hosting_allowed']) && !$u['hidden'] && !$hiddenTitle;
+        layout_start('Chapter pages', 'updates');
+        ?>
+        <div class="head"><h1><?= h($u['series_title']) ?> · Chapter <?= h(format_chapter((float) $u['chapter_number'])) ?></h1><a class="btn ghost" href="<?= h(page_url('updates', ['q' => $u['series_title']])) ?>">Back to updates</a></div>
+        <div class="card">
+          <dl class="facts">
+            <div><dt>Source</dt><dd><?= h($u['source_name'] ?? '(removed)') ?></dd></div>
+            <div><dt>Hosting permission</dt><dd><?= !empty($u['hosting_allowed']) ? 'Yes' : 'No' ?></dd></div>
+            <div><dt>Pages</dt><dd><?= count($pages) ?></dd></div>
+            <div><dt>On the website</dt><dd><?= $shown ? 'Shown' : 'Not shown' ?></dd></div>
+          </dl>
+          <?php if (!empty($u['hosting_note'])): ?><p class="small muted">Permission: <?= h($u['hosting_note']) ?></p><?php endif; ?>
+          <p class="small"><a href="<?= h($u['source_url']) ?>" target="_blank" rel="noopener noreferrer nofollow">Open the original chapter</a></p>
+        </div>
+        <?php if (empty($u['hosting_allowed'])): ?>
+          <div class="alert warn">You can only add pages for chapters whose source has hosting permission: written permission from the publisher or rights holder to show their chapters on Aduna.fit. If you have it, <?= $u['source_id'] && $u['source_name'] !== null ? '<a href="' . h(page_url('source_form', ['id' => $u['source_id']])) . '">edit the source</a> and tick "Hosting permission"' : 'add the publisher as a source and tick "Hosting permission"' ?>. Visitors see a "Visit original source" link until then.</div>
+        <?php else: ?>
+          <form class="card form" method="post" enctype="multipart/form-data" action="<?= h(page_url('pages_upload', ['id' => $u['id']])) ?>">
+            <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+            <label>Add pages (JPG, PNG, WEBP or GIF)
+              <input type="file" name="pages[]" multiple accept="image/jpeg,image/png,image/webp,image/gif" required>
+            </label>
+            <p class="small muted">Pages are added after the existing ones, in file-name order (001.jpg, 002.jpg…). Only upload pages the publisher gave you permission to host, not pages saved from their website without it. Your server accepts <?= h(ini_get('max_file_uploads')) ?> files and <?= h(ini_get('post_max_size')) ?> per upload.</p>
+            <div class="actions"><button class="btn">Upload</button></div>
+          </form>
+        <?php endif; ?>
+        <?php if ($pages): ?>
+          <div class="card">
+            <div class="head"><h2>Current pages</h2>
+              <details class="danger">
+                <summary class="btn small ghost">Delete all pages</summary>
+                <form method="post" action="<?= h(page_url('pages_clear')) ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $u['id'] ?>"><button class="btn small bad">Yes, delete <?= count($pages) ?> page(s)</button></form>
+              </details>
+            </div>
+            <div class="page-thumbs">
+              <?php foreach ($pages as $i => $name): ?>
+                <figure><img src="<?= h(page_url('page_image', ['id' => $u['id'], 'f' => $name])) ?>" alt="Page <?= $i + 1 ?>" loading="lazy"><figcaption><?= $i + 1 ?></figcaption></figure>
+              <?php endforeach; ?>
+            </div>
+          </div>
         <?php endif;
         layout_end();
         break;

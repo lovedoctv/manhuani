@@ -6,7 +6,7 @@ It runs on your existing Namecheap hosting with PHP. You don't need Node.js or a
 
 ## What it does, and what it never does
 
-**It collects only:** the manhua title, the chapter number, the release date (when the feed gives one), and the link to the chapter on the original site. Readers who click a chapter go to the original site to read it.
+**It collects only:** the manhua title, the chapter number, the release date (when the feed gives one), and the link to the chapter on the original site. Readers who click a chapter get a chapter page on your site that names the source. It shows the pages only if you uploaded them for a source that gave you permission (see [Reading chapters on your site](#reading-chapters-on-your-site)); otherwise it says the chapter isn't hosted here and offers a **Visit original source** button.
 
 **It only uses authorized methods:**
 
@@ -18,7 +18,7 @@ It runs on your existing Namecheap hosting with PHP. You don't need Node.js or a
 **It never:**
 
 - bypasses CAPTCHAs, Cloudflare checks, logins or paywalls. A source that shows one is switched off.
-- downloads chapter pages, scans or cover images. Cards for new series get a plain coloured tile with the series' initials.
+- downloads chapter pages, scans or cover images. Pages only reach your site when you upload them yourself. Cards for new series get a plain coloured tile with the series' initials.
 
 **Built-in limits and protection:**
 
@@ -143,7 +143,7 @@ The test also shows a few examples of the chapter releases it understood.
 
 ## Connectors: five official APIs, fully automatic
 
-**Connectors** in the dashboard menu lists five built-in sources. Each is an official API published for programs to use. Once you enable one, the cron job runs it on its own schedule. Nobody has to search for anything. New manhwa and manhua titles appear in **New Titles** on the home page and at `/manhuani/new-titles/`, each with its own page at `/manhuani/title/?s=…`. New chapters appear in **Latest Updates**.
+**Connectors** in the dashboard menu lists five built-in sources. Each is an official API published for programs to use. Once you enable one, the cron job runs it on its own schedule. Nobody has to search for anything. New manhwa and manhua titles appear in **New Titles** on the home page and at `/manhuani/new-titles/`, each with its own page at `/manhuani/title/?s=…`. New chapters appear in **Latest Updates**. Series from your own feed and MangaDex sources get a title page too, so a visitor clicking a series lands on your site first, sees the chapter list, and only then opens a chapter on the site that publishes it.
 
 | Connector | What it gives your site | Reading links | Checks every |
 | --- | --- | --- | --- |
@@ -258,10 +258,29 @@ To follow another language, add `'mangadex_language' => 'fr',` (or another langu
 
 After each run the dashboard writes two kinds of small files into `aduna.fit/manhuani/data/live/`:
 
-- `latest.json` feeds the **Latest Updates** section on the home page. New chapters move their series to the front, marked **NEW**. Clicking a new chapter opens it on the original site.
+- `latest.json` feeds the **Latest Updates** section on the home page. New chapters move their series to the front, marked **NEW**. Clicking a new chapter opens its chapter page on your site.
 - `series/<series>.json` adds NEW chapters to the chapter list of series that already have a page on your site. They're matched by name: "Dungeon Chef" in a feed matches `/manga/dungeon-chef/`.
 
 Deploying the site never overwrites these files.
+
+### Reading chapters on your site
+
+Every crawled chapter has its own page at `/manhuani/chapter/?s=<series>&c=<number>`. The title page, Latest Updates and series pages all link there. The chapter page shows the release date, **Source: (name)**, previous/next buttons and a chapter list.
+
+Visitors can only read the chapter on your site when you have **permission to host it**. Without it, the page says "This chapter isn't hosted on Aduna.fit. You can read it on (source)." and shows a **Visit original source** button.
+
+To host a source's chapters:
+
+1. Get written permission from the publisher or rights holder, for example by email. Keep it.
+2. In the dashboard open **Sources**, click **Edit** on that source, tick **Hosting permission**, and write where the permission came from. Save.
+3. Open **Updates**. Chapters from that source now have a **Pages** link. Click it, choose the page images (JPG, PNG, WEBP or GIF), and upload. They're added in file-name order, so name them `001.jpg`, `002.jpg`, and so on. Upload in several batches if your server limits how many files go up at once.
+4. The pages appear on the chapter page right away, with a **Visit original source** button above them.
+
+Good to know:
+
+- The crawler never downloads pages itself. Only upload pages the publisher gave you permission to host, not pages saved from their site without it.
+- Your uploads are kept in `manhuani_private/pages/` and copied to `aduna.fit/manhuani/data/pages/` only while the source has hosting permission. If you untick the box, hide the chapter or hide its title, the website copies are removed at once. Your private originals stay until you click **Delete all pages**.
+- Settings: `max_pages_per_chapter` (default 300) and `max_page_bytes` (default 10 MB).
 
 ## Command reference
 
