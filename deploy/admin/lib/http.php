@@ -47,7 +47,14 @@ final class Http
         return self::fail($url, 'Too many redirects');
     }
 
-    private static function once(string $url, array $extraHeaders): array
+    /** POST a JSON body (used for official APIs such as AniList's GraphQL). No redirects are followed. */
+    public static function postJson(string $url, array $data, array $extraHeaders = []): array
+    {
+        $body = json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return self::once($url, array_merge(['Content-Type: application/json', 'Accept: application/json'], $extraHeaders), $body);
+    }
+
+    private static function once(string $url, array $extraHeaders, ?string $postBody = null): array
     {
         if (self::$requestCount >= (int) config('max_requests_per_run')) {
             return self::fail($url, 'Request limit for this run reached; will continue next run');
@@ -86,6 +93,10 @@ final class Http
         $tooBig = false;
         $ch = curl_init($url);
         $resolveHost = str_contains($ip, ':') ? "[$ip]" : $ip;
+        if ($postBody !== null) {
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postBody);
+        }
         curl_setopt_array($ch, [
             CURLOPT_RESOLVE => ["$host:$port:$resolveHost"],   // pin the checked IP (no DNS tricks)
             CURLOPT_FOLLOWLOCATION => false,
@@ -95,7 +106,7 @@ final class Http
             CURLOPT_USERAGENT => (string) config('user_agent'),
             CURLOPT_ENCODING => '',
             CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_HTTPHEADER => array_merge(['Accept: application/rss+xml, application/atom+xml, application/feed+json, application/xml;q=0.9, text/html;q=0.8, */*;q=0.5'], $extraHeaders),
+            CURLOPT_HTTPHEADER => self::headers($extraHeaders),
             CURLOPT_HEADERFUNCTION => function ($ch, $line) use (&$headers) {
                 $p = strpos($line, ':');
                 if ($p !== false) {
@@ -120,6 +131,17 @@ final class Http
             return self::fail($url, 'Response is larger than the ' . round($max / 1048576, 1) . ' MB limit');
         }
         return ['status' => $status, 'headers' => $headers, 'body' => $body, 'url' => $url, 'error' => $err ?: null];
+    }
+
+    /** Default Accept header unless the caller sets its own. */
+    private static function headers(array $extra): array
+    {
+        foreach ($extra as $h) {
+            if (stripos($h, 'accept:') === 0) {
+                return $extra;
+            }
+        }
+        return array_merge(['Accept: application/rss+xml, application/atom+xml, application/feed+json, application/xml;q=0.9, text/html;q=0.8, */*;q=0.5'], $extra);
     }
 
     private static function resolvePublicIp(string $host, bool $allowPrivate): ?string

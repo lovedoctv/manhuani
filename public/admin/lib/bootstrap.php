@@ -7,7 +7,7 @@ if (!defined('MANHUANI')) {
     exit;
 }
 
-const MANHUANI_VERSION = '1.0.0';
+const MANHUANI_VERSION = '1.1.0';
 
 require __DIR__ . '/util.php';
 require __DIR__ . '/db.php';
@@ -16,6 +16,7 @@ require __DIR__ . '/http.php';
 require __DIR__ . '/robots.php';
 require __DIR__ . '/feeds.php';
 require __DIR__ . '/extract.php';
+require __DIR__ . '/apis.php';
 require __DIR__ . '/sources.php';
 require __DIR__ . '/crawler.php';
 require __DIR__ . '/publish.php';
@@ -106,6 +107,9 @@ function default_config(string $dir): array
         'published_updates' => 60,                   // how many updates the website shows
         'log_retention_days' => 30,
         'disable_after_failures' => 10,
+        'mangadex_api' => 'https://api.mangadex.org',
+        'mangadex_language' => 'en',                 // chapter language to follow on MangaDex
+        'anilist_api' => 'https://graphql.anilist.co',
         'allow_private_hosts' => false,              // only for local testing
     ];
 }

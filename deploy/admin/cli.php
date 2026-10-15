@@ -57,6 +57,9 @@ function write_config(string $dir, array $values): void
 }
 
 try {
+    if (in_array($cmd, ['run', 'test', 'publish', 'status'], true) && private_dir() !== null) {
+        db_ensure_schema();
+    }
     switch ($cmd) {
         case 'setup':
             if ($missing = missing_requirements()) {

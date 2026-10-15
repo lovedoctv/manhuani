@@ -13,7 +13,7 @@ function publish_updates(): int
     $onSite = site_series_index();
     $limit = (int) config('published_updates');
 
-    $rows = db_all("SELECT u.*, s.name AS source_name FROM updates u JOIN sources s ON s.id = u.source_id
+    $rows = db_all("SELECT u.*, s.name AS source_name, s.method AS source_method FROM updates u JOIN sources s ON s.id = u.source_id
         WHERE u.hidden = 0 ORDER BY COALESCE(u.release_date, u.created_at) DESC, u.id DESC LIMIT $limit");
 
     $updates = array_map(fn ($r) => [
@@ -25,7 +25,8 @@ function publish_updates(): int
         'title' => $r['chapter_label'],
         'date' => gmdate('c', ts($r['release_date'] ?? $r['created_at'])),
         'sourceUrl' => $r['source_url'],
-        'source' => $r['source_name'],
+        'source' => $r['source_method'] === 'mangadex' ? 'MangaDex' : $r['source_name'],
+        'credit' => $r['credit'],
     ], $rows);
 
     write_atomic("$base/latest.json", json_encode(['generated' => gmdate('c'), 'updates' => $updates], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
@@ -33,7 +34,7 @@ function publish_updates(): int
     // Per-series chapter lists, only for series that have a page on your site.
     $written = [];
     foreach (array_keys($onSite) as $slug) {
-        $chs = db_all('SELECT chapter_number, chapter_label, release_date, created_at, source_url FROM updates WHERE series_slug = ? AND hidden = 0 ORDER BY chapter_number DESC LIMIT 200', [$slug]);
+        $chs = db_all('SELECT u.chapter_number, u.chapter_label, u.release_date, u.created_at, u.source_url, u.credit, s.name AS source_name, s.method AS source_method FROM updates u JOIN sources s ON s.id = u.source_id WHERE u.series_slug = ? AND u.hidden = 0 ORDER BY u.chapter_number DESC LIMIT 200', [$slug]);
         if (!$chs) {
             continue;
         }
@@ -42,6 +43,8 @@ function publish_updates(): int
             'title' => $c['chapter_label'],
             'date' => gmdate('c', ts($c['release_date'] ?? $c['created_at'])),
             'sourceUrl' => $c['source_url'],
+            'source' => $c['source_method'] === 'mangadex' ? 'MangaDex' : $c['source_name'],
+            'credit' => $c['credit'],
         ], $chs);
         write_atomic("$base/series/$slug.json", json_encode(['chapters' => $chapters], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         $written[$slug] = true;

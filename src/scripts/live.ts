@@ -4,14 +4,20 @@
 // The build never creates that folder, so deploying the site never overwrites it.
 // If the files are missing (crawler not installed yet), the page simply stays as built.
 //
-//   data/live/latest.json          { updates: [{ series, slug, onSite, cover, chapter, title, date, sourceUrl, source }] }
-//   data/live/series/<slug>.json   { chapters: [{ number, title, date, sourceUrl }] }
+//   data/live/latest.json          { updates: [{ series, slug, onSite, cover, chapter, title, date, sourceUrl, source, credit }] }
+//   data/live/series/<slug>.json   { chapters: [{ number, title, date, sourceUrl, source, credit }] }
+//
+// "credit" is the scanlation group for chapters from MangaDex, whose terms require crediting them.
 
-interface LiveChapter { number: number; title?: string | null; date: string; sourceUrl?: string }
+interface LiveChapter {
+  number: number; title?: string | null; date: string; sourceUrl?: string; source?: string; credit?: string | null;
+}
 interface LiveUpdate {
   series: string; slug: string; onSite: boolean; cover: string | null;
-  chapter: number; title: string | null; date: string; sourceUrl: string; source: string;
+  chapter: number; title: string | null; date: string; sourceUrl: string; source: string; credit?: string | null;
 }
+
+const via = (source?: string, credit?: string | null) => [source, credit].filter(Boolean).map((s) => esc(s!)).join(' · ');
 
 const BASE = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -44,7 +50,7 @@ async function liveSeriesChapters() {
   for (const c of fresh) {
     const li = document.createElement('li');
     li.dataset.n = String(c.number);
-    li.innerHTML = `<a href="${esc(safeUrl(c.sourceUrl!))}" rel="nofollow noopener" target="_blank"><span>Chapter ${c.number}${c.title ? ' – ' + esc(c.title) : ''} <em class="new-badge">NEW</em></span><time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></a>`;
+    li.innerHTML = `<a href="${esc(safeUrl(c.sourceUrl!))}" rel="nofollow noopener" target="_blank"><span>Chapter ${c.number}${c.title ? ' – ' + esc(c.title) : ''} <em class="new-badge">NEW</em>${c.source || c.credit ? ` <small class="live-credit">via ${via(c.source, c.credit)}</small>` : ''}</span><time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></a>`;
     list.prepend(li);
   }
 }
@@ -92,7 +98,7 @@ function cardHtml(u: LiveUpdate, chapters: LiveUpdate[]) {
   <a href="${esc(seriesHref)}"${ext} class="card-cover">${cover}<span class="type-badge live">New</span></a>
   <div class="card-body">
     <h3 class="card-title"><a href="${esc(seriesHref)}"${ext}>${esc(u.series)}</a></h3>
-    <p class="live-source">via ${esc(u.source)}</p>
+    <p class="live-source">via ${via(u.source, u.credit)}</p>
     <ul class="chapter-pills">${pills}</ul>
   </div>
 </article>`;

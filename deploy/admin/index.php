@@ -33,6 +33,7 @@ if (private_dir() === null) {
 
 try {
     db();
+    db_ensure_schema();
 } catch (Throwable $e) {
     http_response_code(500);
     error_log('[manhuani] database error: ' . $e->getMessage());
@@ -159,6 +160,7 @@ switch ($page) {
         ?>
         <div class="head"><h1>Sources</h1><a class="btn" href="<?= h(page_url('source_form')) ?>">+ Add source</a></div>
         <p class="muted">Add the websites you have permission to follow. <b>Test</b> checks robots.txt and looks for an official feed (RSS, Atom or JSON Feed). A source can only be enabled when it allows automated access, has a feed, and you've confirmed permission.</p>
+        <p class="muted">To follow a series on <b>MangaDex</b>, paste its title page (for example <code>https://mangadex.org/title/…</code>). It uses MangaDex's official API, one series per source.</p>
         <?php if ($test): ?>
           <div class="card test <?= $test['ok'] ? 'pass' : 'fail' ?>">
             <h2>Test result: <?= $test['ok'] ? 'ready to enable' : 'can\'t be used automatically' ?></h2>
@@ -179,14 +181,14 @@ switch ($page) {
               <?= source_status_badge($s) ?>
             </div>
             <dl class="facts">
-              <div><dt>Method</dt><dd><?= $s['method'] ? h(strtoupper($s['method']) . ' feed') : '—' ?></dd></div>
-              <div><dt>Access</dt><dd><?= h(['allowed' => 'allowed', 'disallowed' => 'robots.txt says no', 'blocked' => 'anti-bot wall', 'unknown' => 'not tested'][$s['robots_status']] ?? $s['robots_status']) ?><?= $s['crawl_delay'] ? ' · delay ' . (int) $s['crawl_delay'] . 's' : '' ?></dd></div>
+              <div><dt>Method</dt><dd><?= $s['method'] ? h($s['method'] === 'mangadex' ? 'MangaDex API' : strtoupper($s['method']) . ' feed') : '—' ?></dd></div>
+              <div><dt>Access</dt><dd><?= h(['allowed' => 'allowed', 'disallowed' => 'robots.txt says no', 'blocked' => 'anti-bot wall', 'api' => 'official API', 'unknown' => 'not tested'][$s['robots_status']] ?? $s['robots_status']) ?><?= $s['crawl_delay'] ? ' · delay ' . (int) $s['crawl_delay'] . 's' : '' ?></dd></div>
               <div><dt>Every</dt><dd><?= (int) $s['interval_minutes'] ?> min</dd></div>
               <div><dt>Updates</dt><dd><?= (int) $s['update_count'] ?></dd></div>
               <div><dt>Last check</dt><dd><?= h(ago($s['last_checked_at'])) ?></dd></div>
               <div><dt>Next check</dt><dd><?= $s['enabled'] ? h(ago($s['next_check_at'] ?? now())) : '—' ?></dd></div>
             </dl>
-            <?php if ($s['feed_url']): ?><p class="small muted">Feed: <?= h($s['feed_url']) ?></p><?php endif; ?>
+            <?php if ($s['feed_url']): ?><p class="small muted"><?= $s['method'] === 'mangadex' ? 'API' : 'Feed' ?>: <?= h($s['feed_url']) ?></p><?php endif; ?>
             <?php if (!$s['permission_confirmed']): ?><p class="small warn-text">Permission not confirmed yet. Edit the source to confirm.</p><?php endif; ?>
             <?php if ($s['last_error']): ?><p class="small error-text">Last error: <?= h($s['last_error']) ?></p><?php endif; ?>
             <div class="actions">
@@ -228,7 +230,7 @@ switch ($page) {
           <?= csrf_field() ?>
           <?php if ($s): ?><input type="hidden" name="id" value="<?= (int) $s['id'] ?>"><?php endif; ?>
           <label>Website address (or its feed address)
-            <input type="url" name="url" required maxlength="500" placeholder="https://example.com/ or https://example.com/feed/" value="<?= h($s['url'] ?? '') ?>">
+            <input type="url" name="url" required maxlength="500" placeholder="https://example.com/, a feed, or https://mangadex.org/title/…" value="<?= h($s['url'] ?? '') ?>">
           </label>
           <label>Name <input type="text" name="name" maxlength="120" placeholder="Shown in the dashboard and on update cards" value="<?= h($s['name'] ?? '') ?>"></label>
           <label>Check every (minutes, at least <?= (int) config('min_interval_minutes') ?>)
@@ -239,6 +241,7 @@ switch ($page) {
             <input type="checkbox" name="permission_confirmed" value="1" <?= !empty($s['permission_confirmed']) ? 'checked' : '' ?>>
             I have checked this site's terms and I'm allowed to collect its chapter metadata (titles, chapter numbers, dates and links).
           </label>
+          <p class="small muted">For MangaDex, ticking this box also means you accept <a href="https://api.mangadex.org/docs/" target="_blank" rel="noopener noreferrer">its API terms</a>: your site must not run ads or paid services, MangaDex and the scanlation group are credited on every update (this happens automatically), and you remove updates if a group asks.</p>
           <div class="actions"><button class="btn">Save</button><a class="btn ghost" href="<?= h(page_url('sources')) ?>">Cancel</a></div>
         </form>
         <?php
@@ -262,15 +265,16 @@ switch ($page) {
         <form class="search" method="get"><input type="hidden" name="page" value="updates"><input type="search" name="q" value="<?= h($q) ?>" placeholder="Search by series title"><button class="btn small">Search</button></form>
         <div class="card table-wrap">
           <table>
-            <thead><tr><th>Series</th><th>Chapter</th><th>Released</th><th>Source</th><th></th></tr></thead>
+            <thead><tr><th>Series</th><th>Chapter</th><th>Released</th><th>Source</th><th>Credit</th><th></th></tr></thead>
             <tbody>
-            <?php if (!$rows): ?><tr><td colspan="5" class="muted">No updates yet. Enabled sources are checked by the cron job.</td></tr><?php endif; ?>
+            <?php if (!$rows): ?><tr><td colspan="6" class="muted">No updates yet. Enabled sources are checked by the cron job.</td></tr><?php endif; ?>
             <?php foreach ($rows as $r): ?>
               <tr class="<?= $r['hidden'] ? 'hidden-row' : '' ?>">
                 <td><?= h($r['series_title']) ?></td>
                 <td><a href="<?= h($r['source_url']) ?>" target="_blank" rel="noopener noreferrer nofollow">Ch. <?= h(format_chapter($r['chapter_number'])) ?></a><?= $r['chapter_label'] ? ' <span class="muted small">' . h($r['chapter_label']) . '</span>' : '' ?></td>
                 <td class="nowrap"><?= h($r['release_date'] ? substr($r['release_date'], 0, 16) : '—') ?></td>
                 <td><?= h($r['source_name'] ?? '(removed)') ?></td>
+                <td class="small"><?= h($r['credit'] ?? '') ?></td>
                 <td class="nowrap">
                   <form method="post" action="<?= h(page_url($r['hidden'] ? 'update_show' : 'update_hide')) ?>" class="inline"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $r['id'] ?>"><input type="hidden" name="q" value="<?= h($q) ?>"><button class="link"><?= $r['hidden'] ? 'Show' : 'Hide' ?></button></form>
                   <form method="post" action="<?= h(page_url('update_delete')) ?>" class="inline"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $r['id'] ?>"><input type="hidden" name="q" value="<?= h($q) ?>"><button class="link bad">Delete</button></form>
@@ -287,6 +291,45 @@ switch ($page) {
             <?php if ($p * $per < $total): ?><a href="<?= h(page_url('updates', ['q' => $q, 'p' => $p + 1])) ?>">Older »</a><?php endif; ?>
           </nav>
         <?php endif;
+        layout_end();
+        break;
+
+    case 'series_info':
+        $q = trim((string) ($_GET['q'] ?? ''));
+        $found = null;
+        if ($q !== '') {
+            @set_time_limit(30);
+            $found = anilist_search($q);
+        }
+        layout_start('Series info', 'series_info');
+        ?>
+        <div class="head"><h1>Series info <small class="muted">from AniList</small></h1></div>
+        <p class="muted">Look up a series' details (title, type, genres, status, year, author, rating and synopsis) on <a href="https://anilist.co" target="_blank" rel="noopener noreferrer">AniList</a>'s official API, ready to paste as a new series file. Nothing is saved and no images are copied. Searches are only made when you click <b>Search</b>.</p>
+        <form class="search" method="get"><input type="hidden" name="page" value="series_info"><input type="search" name="q" value="<?= h($q) ?>" maxlength="100" placeholder="Series name, e.g. Solo Leveling" required><button class="btn small">Search</button></form>
+        <?php if ($found && $found['error']): ?><div class="alert error"><?= h($found['error']) ?></div><?php endif; ?>
+        <?php if ($found && !$found['error'] && !$found['results']): ?><div class="card empty">No series found on AniList for "<?= h($q) ?>".</div><?php endif; ?>
+        <?php foreach ($found['results'] ?? [] as $r): $d = $r['series']; ?>
+          <article class="card source">
+            <div class="source-head">
+              <div>
+                <h2><?= h($d['title']) ?></h2>
+                <a class="url" href="<?= h($d['source']['url']) ?>" target="_blank" rel="noopener noreferrer"><?= h($d['source']['url']) ?></a>
+              </div>
+              <?= badge($d['type'], 'muted') ?>
+            </div>
+            <dl class="facts">
+              <div><dt>Status</dt><dd><?= h($d['status']) ?></dd></div>
+              <div><dt>Year</dt><dd><?= (int) $d['releaseYear'] ?></dd></div>
+              <div><dt>Rating</dt><dd><?= isset($d['rating']) ? h((string) $d['rating']) . ' / 5' : '—' ?></dd></div>
+              <div><dt>Author</dt><dd><?= h($d['author'] ?? '—') ?></dd></div>
+            </dl>
+            <label class="small">Save as <code>src/content/series/<?= h($r['slug']) ?>.json</code>
+              <textarea class="json" rows="12" readonly><?= h(series_json($d)) ?></textarea>
+            </label>
+          </article>
+        <?php endforeach; ?>
+        <p class="muted small">How to add one to your site: on GitHub, open <code>src/content/series</code>, click <b>Add file → Create new file</b>, name it as shown, paste the text, add chapters if you have them, and commit. Rewrite the synopsis in your own words if it was quoted from a publisher. The series page credits AniList as the source. Series data from AniList is free for non-commercial sites.</p>
+        <?php
         layout_end();
         break;
 

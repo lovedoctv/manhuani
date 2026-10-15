@@ -53,6 +53,9 @@ function crawler_run(?int $onlySourceId = null, bool $force = false): array
 /** @return int number of new updates */
 function crawl_source(array $s): int
 {
+    if ($s['method'] === 'mangadex') {
+        return mangadex_crawl($s);
+    }
     $id = (int) $s['id'];
     $feedUrl = (string) $s['feed_url'];
 

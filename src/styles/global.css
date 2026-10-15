@@ -169,6 +169,7 @@ button, input, select { font: inherit; color: inherit; }
 .live-cover small { font-weight: 700; font-size: 0.85rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .type-badge.live { background: var(--accent); }
 .live-source { margin: 0; font-size: 0.78rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.live-credit { display: block; margin-top: 2px; color: var(--muted); font-size: 0.75rem; font-weight: 400; }
 
 /* ---------- Sidebar ---------- */
 .sidebar { display: grid; gap: 20px; min-width: 0; }
