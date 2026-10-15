@@ -18,9 +18,16 @@ function extract_chapter(string $title, string $feedTitle = ''): array
 
     // "Series ... Chapter 12 ..."
     if (preg_match("/^(.*?)[\s\-–—:|,·]*\b$kw\s*$num\b(.*)$/iu", $title, $m) && trim($m[1]) !== '') {
+        $number = (float) str_replace(',', '.', $m[2]);
+        $series = $m[1];
+        // Some feeds repeat the chapter number in front: "22 — Series Name – Chapter 22".
+        if (preg_match('/^\s*(\d{1,5}(?:[.,]\d{1,2})?)\s*[\-–—:|.]\s+(.+)$/u', $series, $pm)
+            && (float) str_replace(',', '.', $pm[1]) === $number) {
+            $series = $pm[2];
+        }
         return [
-            'series' => clean_series($m[1]),
-            'number' => (float) str_replace(',', '.', $m[2]),
+            'series' => clean_series($series),
+            'number' => $number,
             'label' => clean_label($m[3]),
         ];
     }
