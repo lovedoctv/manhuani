@@ -1,4 +1,5 @@
 ---
+import { url, absoluteUrl } from '../lib/data';
 import '../styles/global.css';
 import site from '../../site.config.mjs';
 import Header from '../components/Header.astro';
@@ -13,10 +14,10 @@ interface Props {
   noindex?: boolean;
 }
 
-const { title, description = site.description, image = '/og-image.png', type = 'website', jsonLd, noindex = false } = Astro.props;
+const { title, description = site.description, image = url('/og-image.png'), type = 'website', jsonLd, noindex = false } = Astro.props;
 const fullTitle = title ? `${title} | ${site.name}` : `${site.name} | ${site.tagline}`;
 const canonical = new URL(Astro.url.pathname, site.url).toString();
-const ogImage = new URL(image, site.url).toString();
+const ogImage = absoluteUrl(image);
 const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 ---
 <!doctype html>
@@ -29,9 +30,9 @@ const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <link rel="canonical" href={canonical} />
     {noindex && <meta name="robots" content="noindex, follow" />}
     <meta name="theme-color" content="#0f1117" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="alternate" type="application/rss+xml" title={`${site.name} Blog`} href="/rss.xml" />
-    <link rel="sitemap" href="/sitemap.xml" />
+    <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title={`${site.name} Blog`} href={url('/rss.xml')} />
+    <link rel="sitemap" href={url('/sitemap.xml')} />
 
     <meta property="og:site_name" content={site.name} />
     <meta property="og:title" content={fullTitle} />

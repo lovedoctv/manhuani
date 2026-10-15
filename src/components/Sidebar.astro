@@ -1,4 +1,5 @@
 ---
+import { url } from '../lib/data';
 import HotList from './HotList.astro';
 import { popularSeries, allYears, yearUrl, genreUrl, genreName, allGenres } from '../lib/data';
 const hot = await popularSeries(5);
@@ -8,7 +9,7 @@ const genres = await allGenres();
 <aside class="sidebar">
   <section class="widget">
     <h2 class="widget-title">Search Manhua &amp; Manhwa</h2>
-    <form action="/search/" method="get" role="search" class="widget-search">
+    <form action={url('/search/')} method="get" role="search" class="widget-search">
       <input type="search" name="q" placeholder="Type a title..." aria-label="Search series" />
       <button type="submit">Search</button>
     </form>
@@ -16,7 +17,7 @@ const genres = await allGenres();
   <section class="widget">
     <h2 class="widget-title">Hot Series</h2>
     <HotList items={hot} />
-    <a class="view-all" href="/manga/">View All</a>
+    <a class="view-all" href={url('/manga/')}>View All</a>
   </section>
   <section class="widget">
     <h2 class="widget-title">Genres</h2>

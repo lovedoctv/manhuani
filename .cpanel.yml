@@ -4,13 +4,16 @@
 # They copy ONLY the finished website (the deploy/ folder) into your document root.
 # Source code, .git, package files and node_modules are never copied.
 #
-# DEPLOYPATH must be your domain's document root, ending with a slash.
-# $HOME is your cPanel home folder (for example /home/yourcpaneluser), so for your
-# main domain this is $HOME/public_html/. For an addon domain or subdomain, use the
-# "Document Root" shown in cPanel > Domains instead (see docs/DEPLOYMENT.md).
+# DEPLOYPATH is the folder the site is served from, ending with a slash.
+# $HOME is your cPanel home folder (for example /home/yourcpaneluser).
+# The site lives at https://aduna.fit/manhuani/, so this is the "manhuani" folder
+# inside aduna.fit's document root. If aduna.fit is your main cPanel domain, its
+# document root is $HOME/public_html. If it's an addon domain, check its
+# "Document Root" in cPanel > Domains and change the line below (see docs/DEPLOYMENT.md).
+# Only this folder is touched; the rest of aduna.fit is left alone.
 deployment:
   tasks:
-    - export DEPLOYPATH=$HOME/public_html/
+    - export DEPLOYPATH=$HOME/public_html/manhuani/
     - /bin/test -f deploy/index.html
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R deploy/. $DEPLOYPATH

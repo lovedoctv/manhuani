@@ -1,4 +1,5 @@
 ---
+import { url } from '../lib/data';
 import Base from '../layouts/Base.astro';
 import Sidebar from './Sidebar.astro';
 import SeriesGrid from './SeriesGrid.astro';
@@ -12,7 +13,7 @@ const list = await allSeries();
 const total = Math.max(1, Math.ceil(list.length / site.perPage));
 const items = list.slice((page - 1) * site.perPage, page * site.perPage);
 const popular = page === 1 ? await popularSeries(6) : [];
-const pageUrl = (n: number) => (n === 1 ? '/' : `/page/${n}/`);
+const pageUrl = (n: number) => url(n === 1 ? '/' : `/page/${n}/`);
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -30,7 +31,7 @@ const jsonLd = {
 <Base title={page > 1 ? `Latest Updates – Page ${page}` : undefined} jsonLd={page === 1 ? jsonLd : undefined} noindex={page > 1}>
   {page === 1 && (
     <section class="container block">
-      <div class="section-head"><h2>Popular Series</h2><a href="/manga/">View all</a></div>
+      <div class="section-head"><h2>Popular Series</h2><a href={url('/manga/')}>View all</a></div>
       <SeriesGrid items={popular} variant="popular" eagerCount={6} />
     </section>
   )}
@@ -66,7 +67,7 @@ const jsonLd = {
       <p class="muted">Browse by genre, follow your favourite series with bookmarks, and check back daily for new chapters.</p>
       <div class="community-actions">
         <a class="btn" href="#latest">Latest Updates</a>
-        <a class="btn btn-ghost" href="/manga/">All Series</a>
+        <a class="btn btn-ghost" href={url('/manga/')}>All Series</a>
       </div>
     </section>
   )}

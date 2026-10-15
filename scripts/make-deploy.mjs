@@ -16,6 +16,11 @@ if (!fs.existsSync(path.join(dist, 'index.html'))) {
 fs.rmSync(deploy, { recursive: true, force: true });
 fs.cpSync(dist, deploy, { recursive: true });
 
+// Fill in the site folder in .htaccess (e.g. /manhuani/).
+const base = site.base ? `${site.base.replace(/\/$/, '')}/` : '/';
+const htaccess = path.join(deploy, '.htaccess');
+fs.writeFileSync(htaccess, fs.readFileSync(htaccess, 'utf8').replaceAll('__BASE__', base));
+
 // Safety net: refuse to ship anything that looks private.
 const banned = [/^\.git$/, /^\.env/, /^node_modules$/, /^\.cpanel\.yml$/, /^package(-lock)?\.json$/, /^src$/];
 const walk = (dir) =>
@@ -28,6 +33,7 @@ const files = walk(deploy);
 const bytes = files.reduce((n, f) => n + fs.statSync(f).size, 0);
 
 console.log(`\ndeploy/ is ready: ${files.length} files, ${(bytes / 1024 / 1024).toFixed(1)} MB`);
+console.log(`It will live at ${site.url}${base}`);
 if (site.url.includes('example.com')) {
   console.warn('WARNING: site.config.mjs still uses https://example.com. Set your real domain before going live.');
 }

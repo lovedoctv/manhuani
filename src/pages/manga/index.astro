@@ -1,4 +1,5 @@
 ---
+import { url } from '../../lib/data';
 import Base from '../../layouts/Base.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import { allSeries, seriesUrl, coverUrl, genreName, statusLabel } from '../../lib/data';
@@ -12,7 +13,7 @@ for (const s of list) {
 ---
 <Base title="All Manhua & Manhwa Series (A–Z)" description="Browse every manhua and manhwa series on the site, sorted A to Z, with genres, status and release year.">
   <div class="container block">
-    <Breadcrumbs items={[{ name: 'All Series', href: '/manga/' }]} />
+    <Breadcrumbs items={[{ name: 'All Series', href: url('/manga/') }]} />
     <h1 class="page-title">All Series</h1>
     <nav class="az" aria-label="Jump to letter">
       {[...groups.keys()].map((k) => <a href={`#letter-${k}`}>{k}</a>)}

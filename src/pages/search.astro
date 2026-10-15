@@ -1,12 +1,13 @@
 ---
+import { url } from '../lib/data';
 import Base from '../layouts/Base.astro';
 import Breadcrumbs from '../components/Breadcrumbs.astro';
 ---
 <Base title="Search" description="Search manhua and manhwa series by title, author or genre." noindex>
   <div class="container block">
-    <Breadcrumbs items={[{ name: 'Search', href: '/search/' }]} />
+    <Breadcrumbs items={[{ name: 'Search', href: url('/search/') }]} />
     <h1 class="page-title">Search</h1>
-    <form class="big-search" action="/search/" method="get" role="search">
+    <form class="big-search" action={url('/search/')} method="get" role="search">
       <input id="search-q" type="search" name="q" placeholder="Title, author or genre..." aria-label="Search series" autofocus />
       <button class="btn" type="submit">Search</button>
     </form>

@@ -1,4 +1,5 @@
 ---
+import { url } from '../../lib/data';
 import Base from '../../layouts/Base.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import { getCollection, render, type CollectionEntry } from 'astro:content';
@@ -23,9 +24,9 @@ const jsonLd = {
   publisher: { '@type': 'Organization', name: site.name },
 };
 ---
-<Base title={d.title} description={d.description} type="article" image={d.cover} jsonLd={jsonLd}>
+<Base title={d.title} description={d.description} type="article" image={d.cover && url(d.cover)} jsonLd={jsonLd}>
   <div class="container narrow block">
-    <Breadcrumbs items={[{ name: 'Blog', href: '/blog/' }, { name: d.title, href: `/blog/${post.id}/` }]} />
+    <Breadcrumbs items={[{ name: 'Blog', href: url('/blog/') }, { name: d.title, href: url(`/blog/${post.id}/`) }]} />
     <article class="prose">
       <h1>{d.title}</h1>
       <p class="muted small"><time datetime={d.date.toISOString()}>{formatDate(d.date)}</time>{d.tags.length > 0 && ` · ${d.tags.join(', ')}`}</p>

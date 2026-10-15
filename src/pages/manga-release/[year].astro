@@ -1,4 +1,5 @@
 ---
+import { url } from '../../lib/data';
 import ArchiveLayout from '../../components/ArchiveLayout.astro';
 import { allSeries, allYears, yearUrl } from '../../lib/data';
 
@@ -12,6 +13,6 @@ const items = (await allSeries()).filter((s) => s.data.releaseYear === year);
   title={`Manhua & Manhwa Released in ${year}`}
   heading={`Series Released in ${year}`}
   description={`Manhua and manhwa series first released in ${year}, with their latest chapter updates.`}
-  crumbs={[{ name: 'Release Year', href: '/manga/' }, { name: String(year), href: yearUrl(year) }]}
+  crumbs={[{ name: 'Release Year', href: url('/manga/') }, { name: String(year), href: yearUrl(year) }]}
   items={items}
 />

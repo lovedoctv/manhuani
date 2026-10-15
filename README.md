@@ -1,6 +1,6 @@
 # Manhuani
 
-A fast, responsive manhua and manhwa blog. It's built as a **static site**, so it runs on any standard shared hosting (like Namecheap with cPanel) without a Node.js server.
+Live at **https://aduna.fit/manhuani/**. A fast, responsive manhua and manhwa blog. It's built as a **static site**, so it runs on any standard shared hosting (like Namecheap with cPanel) without a Node.js server.
 
 - Home page with Popular Series, Latest Updates (paginated) and a sidebar with search, Hot Series, genres and years
 - Series pages with cover, info, genres, chapter list, bookmarks and related series
@@ -15,7 +15,7 @@ Built with [Astro](https://astro.build) (which uses Vite under the hood).
 ## Folder layout
 
 ```
-site.config.mjs        Site name, domain, genres and other settings  ← edit this first
+site.config.mjs        Site name, domain, folder (base), genres and other settings
 src/content/series/    One JSON file per series (metadata + chapters)
 src/content/blog/      Blog posts as Markdown files
 src/pages/             Page templates (URLs mirror this folder)
@@ -24,7 +24,7 @@ src/styles/global.css  All styling and colours
 public/                Files copied as-is (favicon, .htaccess, social image, your covers)
 scripts/               Build, preview and link-check helpers
 deploy/                The finished website: the only folder that goes online
-.cpanel.yml            Tells cPanel to copy deploy/ into your public_html
+.cpanel.yml            Tells cPanel to copy deploy/ into public_html/manhuani
 docs/                  Guides: deployment, adding content, Phase 2 plan
 ```
 
@@ -34,7 +34,7 @@ You need [Node.js](https://nodejs.org) 22 or newer.
 
 ```bash
 npm install          # once, installs the build tools
-npm run dev          # live-editing server at http://localhost:4321
+npm run dev          # live-editing server at http://localhost:4321/manhuani/
 ```
 
 To test the exact files that will go online:
@@ -42,7 +42,7 @@ To test the exact files that will go online:
 ```bash
 npm run build        # builds the site into deploy/
 npm run check        # checks every internal link in deploy/
-npm run preview      # serves deploy/ at http://localhost:4321, like your hosting will
+npm run preview      # serves deploy/ at http://localhost:4321/manhuani/, like your hosting will
 ```
 
 ## Publish it

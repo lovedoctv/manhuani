@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
-Disallow: /search/
-Disallow: /bookmarks/
-Disallow: /admin/
+Disallow: /manhuani/search/
+Disallow: /manhuani/bookmarks/
+Disallow: /manhuani/admin/
 
-Sitemap: https://example.com/sitemap.xml
+Sitemap: https://aduna.fit/manhuani/sitemap.xml

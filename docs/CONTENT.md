@@ -65,6 +65,8 @@ tags: [review, romance]
 Write the post here in Markdown.
 ```
 
+Link to other pages with site paths like `[Dungeon Chef](/manga/dungeon-chef/)`. The `/manhuani` folder is added automatically.
+
 ## Change the look
 
 - Colours are at the top of `src/styles/global.css` (`--accent`, `--bg`, and so on).

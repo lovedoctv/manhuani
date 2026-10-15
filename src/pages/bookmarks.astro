@@ -1,10 +1,11 @@
 ---
+import { url } from '../lib/data';
 import Base from '../layouts/Base.astro';
 import Breadcrumbs from '../components/Breadcrumbs.astro';
 ---
 <Base title="My Bookmarks" description="Series you have bookmarked on this device." noindex>
   <div class="container block">
-    <Breadcrumbs items={[{ name: 'Bookmarks', href: '/bookmarks/' }]} />
+    <Breadcrumbs items={[{ name: 'Bookmarks', href: url('/bookmarks/') }]} />
     <h1 class="page-title">My Bookmarks</h1>
     <p class="muted">Bookmarks are saved in this browser only.</p>
     <div id="bookmark-results" class="series-grid"></div>

@@ -15,7 +15,7 @@ export async function applyLiveUpdates() {
   if (!list) return;
   const slug = list.dataset.liveSeries!;
   try {
-    const res = await fetch(`/data/live/series/${slug}.json`, { cache: 'no-cache' });
+    const res = await fetch(`${import.meta.env.BASE_URL.replace(/\/?$/, '/')}data/live/series/${slug}.json`, { cache: 'no-cache' });
     if (!res.ok) return;
     const data: { chapters?: LiveChapter[] } = await res.json();
     const known = new Set([...list.querySelectorAll('li')].map((li) => li.dataset.n));

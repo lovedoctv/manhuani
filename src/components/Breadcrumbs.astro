@@ -1,8 +1,9 @@
 ---
+import { url } from '../lib/data';
 import { absoluteUrl } from '../lib/data';
 interface Props { items: { name: string; href: string }[] }
 const { items } = Astro.props;
-const all = [{ name: 'Home', href: '/' }, ...items];
+const all = [{ name: 'Home', href: url('/') }, ...items];
 const ld = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',

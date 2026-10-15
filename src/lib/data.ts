@@ -4,15 +4,23 @@ import site from '../../site.config.mjs';
 export type Series = CollectionEntry<'series'>;
 export type Chapter = Series['data']['chapters'][number];
 
-export const base = (path: string) => (path.startsWith('/') ? path : `/${path}`);
+/** Base folder the site is served from, e.g. "/manhuani/" (always ends with "/"). */
+export const BASE = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 
-export const seriesUrl = (slug: string) => `/manga/${slug}/`;
-export const chapterUrl = (slug: string, n: number) => `/manga/${slug}/chapter-${chapterSlug(n)}/`;
-export const genreUrl = (slug: string) => `/manga-genre/${slug}/`;
-export const yearUrl = (y: number) => `/manga-release/${y}/`;
+/** Turns a site path like "/manga/x/" into "/manhuani/manga/x/". Safe to call twice. */
+export const url = (path: string) => {
+  if (/^[a-z]+:/i.test(path) || path.startsWith('//')) return path;
+  if (path.startsWith(BASE)) return path;
+  return BASE + path.replace(/^\//, '');
+};
+
+export const seriesUrl = (slug: string) => url(`/manga/${slug}/`);
+export const chapterUrl = (slug: string, n: number) => url(`/manga/${slug}/chapter-${chapterSlug(n)}/`);
+export const genreUrl = (slug: string) => url(`/manga-genre/${slug}/`);
+export const yearUrl = (y: number) => url(`/manga-release/${y}/`);
 export const chapterSlug = (n: number) => String(n).replace('.', '-');
 
-export const coverUrl = (s: Series) => s.data.cover ?? `/covers/${s.id}.svg`;
+export const coverUrl = (s: Series) => url(s.data.cover ?? `/covers/${s.id}.svg`);
 
 export const genreName = (slug: string) =>
   site.genres.find((g) => g.slug === slug)?.name ??
@@ -59,4 +67,4 @@ export const formatDate = (d: Date) =>
 
 export const statusLabel = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export const absoluteUrl = (path: string) => new URL(path, site.url).toString();
+export const absoluteUrl = (path: string) => new URL(url(path), site.url).toString();
