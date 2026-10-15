@@ -41,7 +41,7 @@ function crawler_run(?int $onlySourceId = null, bool $force = false): array
         $stats['new'] += $cx['new'];
         $stats['errors'] += $cx['errors'];
         $stats['titles'] = $cx['titles'];
-        if ($stats['new'] > 0 || $cx['titles'] > 0 || $force || !is_file(site_dir() . '/data/live/latest.json') || !is_file(site_dir() . '/data/live/titles.json') || meta_get('needs_publish') === '1') {
+        if ($stats['new'] > 0 || $cx['titles'] > 0 || $force || !is_file(site_dir() . '/data/live/latest.json') || !is_file(site_dir() . '/data/live/titles.json') || meta_get('needs_publish') === '1' || meta_get('published_version') !== MANHUANI_VERSION) {
             publish_updates();
         }
         prune_old_rows();

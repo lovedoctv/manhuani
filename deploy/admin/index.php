@@ -41,6 +41,16 @@ try {
     exit;
 }
 
+// After deploying a new version, rewrite the website's data files at once so the site
+// uses the new format without waiting for the next cron run.
+if (meta_get('published_version') !== MANHUANI_VERSION) {
+    try {
+        publish_updates();
+    } catch (Throwable $e) {
+        log_error('Could not refresh the website after the update: ' . $e->getMessage());
+    }
+}
+
 start_session();
 $page = (string) ($_GET['page'] ?? 'dashboard');
 $isPost = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
