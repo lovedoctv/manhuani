@@ -9,6 +9,7 @@ Live at **https://aduna.fit/manhuani/**. A fast, responsive manhua and manhwa bl
 - Blog with Markdown posts and an RSS feed
 - Search, bookmarks and light/dark theme, all handled in the browser
 - SEO: page titles and descriptions, canonical links, Open Graph tags, JSON-LD structured data, `sitemap.xml` and `robots.txt`
+- A private crawler dashboard at `/manhuani/admin/` (PHP). It follows official feeds of sites you have permission to use and shows new chapters in Latest Updates without a rebuild.
 
 Built with [Astro](https://astro.build) (which uses Vite under the hood).
 
@@ -22,10 +23,11 @@ src/pages/             Page templates (URLs mirror this folder)
 src/components/        Reusable parts (cards, sidebar, header...)
 src/styles/global.css  All styling and colours
 public/                Files copied as-is (favicon, .htaccess, social image, your covers)
+public/admin/          The private crawler dashboard (PHP, runs on your hosting)
 scripts/               Build, preview and link-check helpers
 deploy/                The finished website: the only folder that goes online
 .cpanel.yml            Tells cPanel to copy deploy/ into aduna.fit/manhuani
-docs/                  Guides: deployment, adding content, Phase 2 plan
+docs/                  Guides: deployment, adding content, crawler, architecture
 ```
 
 ## Run it on your computer
@@ -55,6 +57,6 @@ In short: changes pushed to GitHub are rebuilt into `deploy/` automatically, the
 
 See **[docs/CONTENT.md](docs/CONTENT.md)**.
 
-## Phase 2 (crawler dashboard)
+## Crawler dashboard (Phase 2)
 
-See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for how the private crawler dashboard will plug into this site without a rebuild.
+See **[docs/CRAWLER.md](docs/CRAWLER.md)** to install it, add sources and set up the cron job. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** explains how it fits with the static site.
