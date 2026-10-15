@@ -6,16 +6,18 @@ defined('MANHUANI') || exit;
  *   data/live/latest.json            newest updates for the Latest Updates section
  *   data/live/series/<slug>.json     extra chapters for series pages on your site
  *   data/live/titles.json, title/*   titles found by the connectors (see publish_titles)
- * Metadata and links only. No images or chapter content.
+ *   data/pages/<id>/*                chapter pages you uploaded, for sources with hosting permission (lib/pages.php)
+ * Apart from those uploads: metadata and links only, never images or content from other sites.
  */
 function publish_updates(): int
 {
     $base = site_dir() . '/data/live';
     $onSite = site_series_index();
+    hosted_pages(pages_publish());
     $limit = (int) config('published_updates');
     $from = 'FROM updates u LEFT JOIN sources s ON s.id = u.source_id LEFT JOIN titles t ON t.id = u.title_id
         WHERE u.hidden = 0 AND (s.id IS NOT NULL OR u.connector IS NOT NULL) AND (t.id IS NULL OR t.hidden = 0)';
-    $cols = 'u.*, s.name AS source_name, s.method AS source_method, t.id AS tid';
+    $cols = 'u.*, s.name AS source_name, s.method AS source_method, t.id AS tid, t.slug AS tslug';
 
     $rows = db_all("SELECT $cols $from ORDER BY COALESCE(u.release_date, u.created_at) DESC, u.id DESC LIMIT $limit");
     $updates = array_map(fn ($r) => [
@@ -23,6 +25,8 @@ function publish_updates(): int
         'slug' => $r['series_slug'],
         'onSite' => isset($onSite[$r['series_slug']]),
         'titlePage' => !isset($onSite[$r['series_slug']]) && $r['tid'] !== null,
+        'titleSlug' => $r['tslug'],
+        'hosted' => isset(hosted_pages()[(int) $r['id']]),
         'cover' => $onSite[$r['series_slug']]['cover'] ?? null,
         'chapter' => (float) $r['chapter_number'],
         'title' => $r['chapter_label'],
@@ -90,7 +94,7 @@ function publish_titles(string $base, array $onSite): void
             'altTitles' => json_decode((string) $t['alt_titles'], true) ?: [],
             'links' => $links,
             'credits' => $credits,
-            'chapters' => array_map('chapter_json', $chs),
+            'chapters' => array_map(fn ($c) => chapter_json($c + ['tslug' => $t['slug']]), $chs),
         ];
         write_if_changed("$base/title/{$t['slug']}.json", json_encode($detail, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         $written[$t['slug']] = true;
@@ -119,7 +123,8 @@ function chapter_json(array $c): array
         'readable' => (bool) ($c['readable'] ?? true),
         'source' => update_source_label($c),
         'credit' => $c['credit'],
-    ];
+        'titleSlug' => $c['tslug'] ?? null,
+    ] + (($pages = hosted_pages()[(int) $c['id']] ?? null) ? ['pages' => $pages] : []);
 }
 
 /** Who to credit for an update: the connector, MangaDex, or the feed source's name. */

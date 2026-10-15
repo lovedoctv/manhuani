@@ -114,3 +114,11 @@ textarea.json { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, mo
 .source label.small { display: grid; gap: 6px; margin-top: 12px; font-weight: 600; }
 .enable-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .enable-form label.check { margin: 0; font-weight: 400; }
+
+/* Chapter pages (sources with hosting permission) */
+fieldset.hosting { border: 1px solid var(--border, #ddd); border-radius: 8px; padding: 12px 14px; margin: 0; display: grid; gap: 10px; }
+fieldset.hosting legend { font-weight: 600; padding: 0 6px; }
+.page-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+.page-thumbs figure { margin: 0; text-align: center; }
+.page-thumbs img { width: 100%; height: 160px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border, #ddd); background: #fff; }
+.page-thumbs figcaption { font-size: .8rem; color: var(--muted, #666); }
