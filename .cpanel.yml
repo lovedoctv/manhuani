@@ -6,14 +6,12 @@
 #
 # DEPLOYPATH is the folder the site is served from, ending with a slash.
 # $HOME is your cPanel home folder (for example /home/yourcpaneluser).
-# The site lives at https://aduna.fit/manhuani/, so this is the "manhuani" folder
-# inside aduna.fit's document root. If aduna.fit is your main cPanel domain, its
-# document root is $HOME/public_html. If it's an addon domain, check its
-# "Document Root" in cPanel > Domains and change the line below (see docs/DEPLOYMENT.md).
-# Only this folder is touched; the rest of aduna.fit is left alone.
+# aduna.fit is an addon domain whose document root is $HOME/aduna.fit
+# (see cPanel > Domains > Document Root), so https://aduna.fit/manhuani/
+# is served from $HOME/aduna.fit/manhuani/. Only this folder is touched.
 deployment:
   tasks:
-    - export DEPLOYPATH=$HOME/public_html/manhuani/
+    - export DEPLOYPATH=$HOME/aduna.fit/manhuani/
     - /bin/test -f deploy/index.html
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R deploy/. $DEPLOYPATH

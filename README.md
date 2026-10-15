@@ -24,7 +24,7 @@ src/styles/global.css  All styling and colours
 public/                Files copied as-is (favicon, .htaccess, social image, your covers)
 scripts/               Build, preview and link-check helpers
 deploy/                The finished website: the only folder that goes online
-.cpanel.yml            Tells cPanel to copy deploy/ into public_html/manhuani
+.cpanel.yml            Tells cPanel to copy deploy/ into aduna.fit/manhuani
 docs/                  Guides: deployment, adding content, Phase 2 plan
 ```
 

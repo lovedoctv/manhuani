@@ -7,7 +7,7 @@ The site lives at **https://aduna.fit/manhuani/**. The website that goes online 
 1. You (or Claude) change the site and push to the `main` branch on GitHub.
 2. A GitHub Action rebuilds `deploy/` and commits it, so you don't need Node.js installed.
 3. In cPanel, **Git Version Control** pulls the latest commit from GitHub.
-4. **Deploy HEAD Commit** runs `.cpanel.yml`, which copies `deploy/` into the `manhuani` folder inside aduna.fit's document root.
+4. **Deploy HEAD Commit** runs `.cpanel.yml`, which copies `deploy/` into the `manhuani` folder inside aduna.fit's document root (`$HOME/aduna.fit/manhuani/`).
 
 ## One-time setup
 
@@ -19,8 +19,8 @@ You have already done steps 1 and 2 (SSH key and clone). They're listed here for
    - Repository Path: `repositories/manhuani`
 3. **Check aduna.fit's document root.**
    - Open cPanel > **Domains**. Find `aduna.fit` and look at its **Document Root** column.
-   - If it shows `/public_html` (the main domain), nothing to change: `.cpanel.yml` deploys to `$HOME/public_html/manhuani/`. `$HOME` is your cPanel home folder, shown as "Home Directory" in the **General Information** panel on the cPanel home page.
-   - If it shows something else, for example `/aduna.fit`, edit the `DEPLOYPATH` line in `.cpanel.yml` to `export DEPLOYPATH=$HOME/aduna.fit/manhuani/`. Keep the slash at the end.
+   - It's `/aduna.fit` (an addon domain), so `.cpanel.yml` deploys to `$HOME/aduna.fit/manhuani/`. `$HOME` is your cPanel home folder, shown as "Home Directory" in the **General Information** panel on the cPanel home page.
+   - If the document root ever changes (for example to `/public_html`), edit the `DEPLOYPATH` line in `.cpanel.yml` to match, such as `export DEPLOYPATH=$HOME/public_html/manhuani/`. Keep the slash at the end.
 4. **Domain and folder settings.** `site.config.mjs` already has `url: 'https://aduna.fit'` and `base: '/manhuani'`. If you ever move the site, change these two lines and the `DEPLOYPATH` in `.cpanel.yml`.
 5. **Nothing else on aduna.fit is touched.** Deploying only writes inside the `manhuani` folder.
 
@@ -44,8 +44,8 @@ You have already done steps 1 and 2 (SSH key and clone). They're listed here for
 | --- | --- |
 | "Deploy HEAD Commit" is greyed out | The repo has uncommitted changes on the server. Don't edit files inside `repositories/manhuani` in File Manager. |
 | Deploy fails right away | `.cpanel.yml` must be in the repo root, and the `deploy/` folder must exist on `main`. Check the Actions tab finished green. |
-| Deploy fails mentioning the path | Replace `$HOME/public_html/manhuani/` in `.cpanel.yml` with the full path, for example `/home/YOUR-CPANEL-USERNAME/public_html/manhuani/`. |
-| Pages show 404 or look unstyled | Make sure `.htaccess` and the `assets/` folder are inside `public_html/manhuani`. File Manager hides dotfiles: open Settings and tick "Show Hidden Files". |
+| Deploy fails mentioning the path | Replace `$HOME/aduna.fit/manhuani/` in `.cpanel.yml` with the full path, for example `/home/YOUR-CPANEL-USERNAME/aduna.fit/manhuani/`. |
+| Pages show 404 or look unstyled | Make sure `.htaccess` and the `assets/` folder are inside `aduna.fit/manhuani`. File Manager hides dotfiles: open Settings and tick "Show Hidden Files". |
 | "Update from Remote" fails | Run `ssh -T git@github.com` in cPanel Terminal. It should say "successfully authenticated". If not, re-check the deploy key. |
 | Old version still showing | Hard refresh (Ctrl+F5), or wait a few minutes for the browser cache. |
 
