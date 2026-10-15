@@ -146,10 +146,10 @@ function source_test(int $id): array
         } else {
             $kind = feed_kind($res);
             $candidates = [];
+            $best = null;
             if ($kind) {
-                $feedUrl = $res['url'];
-                $method = $kind;
                 $add('ok', 'This address is itself a ' . strtoupper($kind) . ' feed.');
+                $best = feed_score($res, $kind);
             } else {
                 $api = detect_api($res['body'], $res['url']);
                 if ($api) {
@@ -166,6 +166,8 @@ function source_test(int $id): array
                     $add('info', 'Trying the usual feed addresses.');
                 }
             }
+            // Look at each feed and keep the one with the most chapter releases
+            // (sites often list a blog or comments feed first).
             foreach (array_slice($candidates, 0, 5) as $cand) {
                 $r = robots_check($cand);
                 if (!$r['allowed']) {
@@ -173,46 +175,36 @@ function source_test(int $id): array
                     continue;
                 }
                 $fr = Http::get($cand);
-                if ($fr['error'] || $fr['status'] >= 400) {
-                    continue;
-                }
-                if (detect_blocker($fr)) {
+                if ($fr['error'] || $fr['status'] >= 400 || detect_blocker($fr)) {
                     continue;
                 }
                 $k = feed_kind($fr);
-                if ($k) {
-                    $feedUrl = $fr['url'];
-                    $method = $k;
-                    $add('ok', 'Authorized feed found: ' . strtoupper($k) . " at $feedUrl");
-                    break;
+                if (!$k) {
+                    continue;
+                }
+                $score = feed_score($fr, $k);
+                $add('info', strtoupper($k) . " feed at {$score['url']}: {$score['items']} item(s), {$score['chapters']} chapter release(s).");
+                if ($best === null || $score['chapters'] > $best['chapters']) {
+                    $best = $score;
+                }
+            }
+            if ($best !== null) {
+                if ($best['error'] !== null) {
+                    $add('error', 'The feed could not be read: ' . $best['error']);
+                } elseif ($best['chapters'] === 0) {
+                    $add('error', "The feed has {$best['items']} item(s) but none look like chapter releases (for example \"Series Name Chapter 12\"). "
+                        . 'It is probably a blog or news feed. If the site has a separate chapter or series feed, paste that address instead.');
+                } else {
+                    $feedUrl = $best['url'];
+                    $method = $best['kind'];
+                    $add('ok', 'Authorized feed found: ' . strtoupper($method) . " at $feedUrl");
+                    $add('ok', "The feed has {$best['items']} item(s); {$best['chapters']} look like chapter releases. For example: " . implode('; ', $best['examples']) . '.');
                 }
             }
         }
     }
 
-    if ($feedUrl) {
-        try {
-            $fres = Http::get($feedUrl);
-            $parsed = parse_feed($fres['body'], $method, $feedUrl);
-            $n = count($parsed['items']);
-            $withCh = 0;
-            $examples = [];
-            foreach ($parsed['items'] as $it) {
-                $x = extract_chapter($it['title'], $parsed['title']);
-                if ($x['number'] !== null) {
-                    $withCh++;
-                    if (count($examples) < 3) {
-                        $examples[] = $x['series'] . ' – Chapter ' . format_chapter($x['number']);
-                    }
-                }
-            }
-            $add($n ? 'ok' : 'warning', "The feed has $n item(s); $withCh look like chapter releases." . ($examples ? ' For example: ' . implode('; ', $examples) . '.' : ''));
-        } catch (Throwable $e) {
-            $add('error', 'The feed could not be read: ' . $e->getMessage());
-            $feedUrl = null;
-            $method = null;
-        }
-    } elseif ($robotsStatus === 'allowed') {
+    if ($feedUrl === null && $robotsStatus === 'allowed' && !array_filter($lines, fn ($l) => $l[0] === 'error')) {
         $add('error', 'No authorized feed was found. This source can\'t be used automatically. Web pages are never scraped.');
     }
 
@@ -222,6 +214,29 @@ function source_test(int $id): array
         [$feedUrl, $method, $robotsStatus, $delay, $summary, now(), now(), $id]);
     log_event($ok ? 'info' : 'warning', 'Test ' . ($ok ? 'passed' : 'did not pass') . " for {$s['name']}", $id);
     return ['ok' => $ok, 'lines' => $lines];
+}
+
+/** @return array{url:string, kind:string, items:int, chapters:int, examples:list<string>, error:?string} */
+function feed_score(array $res, string $kind): array
+{
+    $score = ['url' => $res['url'], 'kind' => $kind, 'items' => 0, 'chapters' => 0, 'examples' => [], 'error' => null];
+    try {
+        $parsed = parse_feed($res['body'], $kind, $res['url']);
+    } catch (Throwable $e) {
+        $score['error'] = $e->getMessage();
+        return $score;
+    }
+    $score['items'] = count($parsed['items']);
+    foreach ($parsed['items'] as $it) {
+        $x = extract_chapter($it['title'], $parsed['title']);
+        if ($x['number'] !== null) {
+            $score['chapters']++;
+            if (count($score['examples']) < 3) {
+                $score['examples'][] = $x['series'] . ' – Chapter ' . format_chapter($x['number']);
+            }
+        }
+    }
+    return $score;
 }
 
 function format_chapter($n): string

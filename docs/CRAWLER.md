@@ -125,7 +125,8 @@ Click **Test** on the source. You'll see a list of checks:
 | ✓ robots.txt allows this address | Automated access is allowed. |
 | ✕ robots.txt blocks this address | The site doesn't allow bots there. The source can't be used. |
 | ✕ This source shows a CAPTCHA or anti-bot check | It won't be bypassed. The source can't be used. |
-| ✓ Authorized feed found | An official RSS, Atom or JSON feed was found. |
+| ✓ Authorized feed found | An official RSS, Atom or JSON feed with chapter releases was found. When a site has several feeds, the one with the most chapter releases is used. |
+| ✕ none look like chapter releases | The feed only has blog posts or news. Paste the address of the site's chapter or series feed instead, if it has one. |
 | ✕ No authorized feed was found | The site has no feed, so there's no permitted way to follow it automatically. |
 | i Found an API | Shown for information only. It's never used automatically. |
 
