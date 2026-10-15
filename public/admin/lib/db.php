@@ -119,6 +119,9 @@ function db_migrate(): void
             release_date {$str(19)} NULL,
             source_url {$str(500)} NOT NULL,
             credit {$str(255)} NULL,
+            title_id INTEGER NULL,
+            connector {$str(20)} NULL,
+            readable INTEGER NOT NULL DEFAULT 1,
             dedupe_key CHAR(40) NOT NULL,
             hidden INTEGER NOT NULL DEFAULT 0,
             created_at {$str(19)} NOT NULL,
@@ -142,6 +145,61 @@ function db_migrate(): void
             ip {$str(64)} NOT NULL,
             attempted_at {$str(19)} NOT NULL
         )$engine",
+        // Catalogue of titles found by the connectors (lib/titles.php).
+        "CREATE TABLE IF NOT EXISTS titles (
+            id $id,
+            slug {$str(191)} NOT NULL,
+            title {$str(255)} NOT NULL,
+            alt_titles $text NULL,
+            type {$str(10)} NULL,
+            status {$str(20)} NULL,
+            year INTEGER NULL,
+            genres $text NULL,
+            rating DECIMAL(3,1) NULL,
+            links $text NULL,
+            latest_chapter DECIMAL(10,2) NULL,
+            latest_chapter_at {$str(19)} NULL,
+            hidden INTEGER NOT NULL DEFAULT 0,
+            created_at {$str(19)} NOT NULL,
+            updated_at {$str(19)} NOT NULL,
+            UNIQUE (slug)
+        )$engine",
+        // One row per title per connector: the id it has there, its page, and what we learned.
+        "CREATE TABLE IF NOT EXISTS title_sources (
+            id $id,
+            title_id INTEGER NOT NULL,
+            connector {$str(20)} NOT NULL,
+            external_id {$str(64)} NOT NULL,
+            url {$str(500)} NULL,
+            data $text NULL,
+            fetched_at {$str(19)} NULL,
+            UNIQUE (connector, external_id)
+        )$engine",
+        // Normalised names (and cross-site ids) pointing at a title, so the same series
+        // found by several sources is stored once.
+        "CREATE TABLE IF NOT EXISTS title_keys (
+            k {$str(191)} NOT NULL PRIMARY KEY,
+            title_id INTEGER NOT NULL
+        )$engine",
+        // Built-in API connectors and their health.
+        "CREATE TABLE IF NOT EXISTS connectors (
+            name {$str(20)} NOT NULL PRIMARY KEY,
+            enabled INTEGER NOT NULL DEFAULT 0,
+            terms_accepted INTEGER NOT NULL DEFAULT 0,
+            state $text NULL,
+            last_run_at {$str(19)} NULL,
+            last_success_at {$str(19)} NULL,
+            last_error $text NULL,
+            last_stats $text NULL,
+            fail_count INTEGER NOT NULL DEFAULT 0,
+            next_run_at {$str(19)} NULL
+        )$engine",
+        // Short-lived copies of API answers, so lookups aren't repeated.
+        "CREATE TABLE IF NOT EXISTS api_cache (
+            k CHAR(40) NOT NULL PRIMARY KEY,
+            body $text NOT NULL,
+            expires_at {$str(19)} NOT NULL
+        )$engine",
         "CREATE TABLE IF NOT EXISTS meta (
             k {$str(64)} NOT NULL PRIMARY KEY,
             v $text NULL
@@ -150,10 +208,24 @@ function db_migrate(): void
     foreach ($stmts as $sql) {
         db()->exec($sql);
     }
+    // Schema 2: who to credit for a chapter (e.g. the scanlation group on MangaDex).
+    if (!db_has_column('updates', 'credit')) {
+        db()->exec('ALTER TABLE updates ADD COLUMN credit ' . ($mysql ? 'VARCHAR(255)' : 'TEXT') . ' NULL');
+    }
+    // Schema 3: updates from the built-in connectors and the titles catalogue.
+    foreach (['title_id' => 'INTEGER NULL', 'connector' => ($mysql ? 'VARCHAR(20)' : 'TEXT') . ' NULL', 'readable' => 'INTEGER NOT NULL DEFAULT 1'] as $col => $def) {
+        if (!db_has_column('updates', $col)) {
+            db()->exec("ALTER TABLE updates ADD COLUMN $col $def");
+        }
+    }
     $indexes = [
         'idx_updates_created' => 'updates (created_at)',
         'idx_updates_slug' => 'updates (series_slug)',
         'idx_logs_created' => 'logs (created_at)',
+        'idx_updates_title' => 'updates (title_id)',
+        'idx_title_sources_title' => 'title_sources (title_id)',
+        'idx_title_keys_title' => 'title_keys (title_id)',
+        'idx_titles_created' => 'titles (created_at)',
         'idx_login_ip' => 'login_attempts (ip, attempted_at)',
     ];
     foreach ($indexes as $name => $on) {
@@ -166,14 +238,10 @@ function db_migrate(): void
             db()->exec("CREATE INDEX IF NOT EXISTS $name ON $on");
         }
     }
-    // Schema 2: who to credit for a chapter (e.g. the scanlation group on MangaDex).
-    if (!db_has_column('updates', 'credit')) {
-        db()->exec('ALTER TABLE updates ADD COLUMN credit ' . ($mysql ? 'VARCHAR(255)' : 'TEXT') . ' NULL');
-    }
     meta_set('schema_version', (string) DB_SCHEMA_VERSION);
 }
 
-const DB_SCHEMA_VERSION = 2;
+const DB_SCHEMA_VERSION = 3;
 
 /** Runs db_migrate() when the database is older than this code, so updates need no manual step. */
 function db_ensure_schema(): void

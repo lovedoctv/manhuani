@@ -9,7 +9,7 @@ Live at **https://aduna.fit/manhuani/**. A fast, responsive manhua and manhwa bl
 - Blog with Markdown posts and an RSS feed
 - Search, bookmarks and light/dark theme, all handled in the browser
 - SEO: page titles and descriptions, canonical links, Open Graph tags, JSON-LD structured data, `sitemap.xml` and `robots.txt`
-- A private crawler dashboard at `/manhuani/admin/` (PHP). It follows official feeds of sites you have permission to use, and series on MangaDex through its official API, and shows new chapters in Latest Updates without a rebuild. It can also look up series details on AniList to create new series pages.
+- A private crawler dashboard at `/manhuani/admin/` (PHP). It follows official feeds of sites you have permission to use, and series on MangaDex through its official API, and shows new chapters in Latest Updates without a rebuild. Five official APIs (MangaDex, MangaUpdates, AniList, Bangumi, Anime News Network) add new titles and chapters automatically.
 
 Built with [Astro](https://astro.build) (which uses Vite under the hood).
 

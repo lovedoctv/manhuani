@@ -11,7 +11,7 @@ It runs on your existing Namecheap hosting with PHP. You don't need Node.js or a
 **It only uses authorized methods:**
 
 - It reads `robots.txt` first and obeys it, including `Crawl-delay`. It identifies itself as `ManhuaniBot`.
-- It only reads official feeds (RSS, Atom or JSON Feed) and two official APIs that are published for programs to use: MangaDex and AniList. It never scrapes ordinary web pages.
+- It only reads official feeds (RSS, Atom or JSON Feed) and five official APIs that are published for programs to use: MangaDex, MangaUpdates, AniList, Bangumi and Anime News Network. It never scrapes ordinary web pages.
 - It reports when another site offers an API, but never uses one automatically.
 - You have to tick a box confirming you're allowed to use the source before it can be switched on.
 
@@ -141,6 +141,82 @@ The test also shows a few examples of the chapter releases it understood.
 - **Edit** changes the name, address, interval or notes. Changing the address switches the source off until you test it again.
 - **Remove** deletes the source. Tick "Also delete its updates" to remove its chapters from the site too.
 
+## Connectors: five official APIs, fully automatic
+
+**Connectors** in the dashboard menu lists five built-in sources. Each is an official API published for programs to use. Once you enable one, the cron job runs it on its own schedule. Nobody has to search for anything. New manhwa and manhua titles appear in **New Titles** on the home page and at `/manhuani/new-titles/`, each with its own page at `/manhuani/title/?s=…`. New chapters appear in **Latest Updates**.
+
+| Connector | What it gives your site | Reading links | Checks every |
+| --- | --- | --- | --- |
+| **MangaDex** | New titles and new English chapters of Korean and Chinese series | Yes: each chapter opens on mangadex.org, plus the official English publisher when MangaDex lists one | 60 min |
+| **MangaUpdates** | Chapter releases announced by scanlation groups | No: these chapters open the series page on MangaUpdates. When MangaDex has the same chapter, its reading link replaces it. | 30 min |
+| **AniList** | Genres, status, year, rating and official reading sites (Webtoon, Tapas, Bilibili and others) for titles found by the others, plus 15 trending manhwa and 15 trending manhua a day | Official sites only | 120 min |
+| **Bangumi** | Matches manhua by their Chinese name and links their bgm.tv page | No | 180 min |
+| **Anime News Network** | Genres, year and the official website from the ANN Encyclopedia | Official website only | 180 min |
+
+Only MangaDex gives chapter pages that can be read. MangaUpdates gives release information. AniList, Bangumi and ANN give series details. No source is used to copy chapter pages or cover images.
+
+### Turn them on
+
+1. Open **Connectors**.
+2. Read each connector's **Terms** line. Follow the "API terms and docs" link for the full terms.
+3. Click **Test**. It makes one small request and shows what came back.
+4. Tick **I accept … terms** and click **Enable**.
+
+The next scheduled check runs it. To run it straight away, click **Run now**.
+
+**Terms you accept by enabling them:**
+
+- **MangaDex:** no ads or paid services on your site (donations are fine). MangaDex and the scanlation groups are credited automatically. Remove updates if a group asks.
+- **MangaUpdates:** MangaUpdates is credited automatically, requests are spaced out and answers are cached.
+- **AniList:** free for non-commercial sites, or ones earning under $150 a month. It must not be used to store or mass-collect its data, so only small batches are fetched.
+- **Bangumi:** requests identify the site (done automatically).
+- **Anime News Network:** ANN is credited and each title links its encyclopedia entry (done automatically). At most 1 request a second, with answers cached for a week.
+
+Your About page lists all five sources, and every title page credits the ones it used.
+
+### How duplicates are avoided
+
+Each title is stored once, even when several sources find it:
+
+1. **Same ID on the same site.**
+2. **Cross-site IDs.** MangaDex lists a title's AniList and MangaUpdates IDs.
+3. **Same name.** This includes alternative titles and the names scanlation groups use.
+
+Each chapter is stored once per title and chapter number. If a chapter from MangaUpdates (no reading link) later appears on MangaDex, the MangaDex link replaces it.
+
+Feed sources from **Sources** use the same catalogue. A feed chapter for a series a connector already found is filed under that title.
+
+### Health, limits and failures
+
+- Each connector page shows its last run, last success, next run, the last error, and what the last run found.
+- The dashboard shows a yellow warning while a connector is failing.
+- A connector that fails is logged, retried later (60 min, then 2, 4, 8 hours, up to a day), and switched off after 10 failures in a row. The other connectors and feed sources still run.
+- If an API says "slow down" (HTTP 429), the connector waits as long as it asks, at least 10 minutes.
+- Network errors and server errors are retried once, 2 seconds later.
+- Requests to one API are at least 3 seconds apart, and each connector makes at most 12 requests per run.
+- Lookups (AniList, Bangumi, ANN and MangaUpdates series details) are cached in the database for 7 to 30 days.
+- **Titles** in the menu lists every title found. **Hide** removes a title and its chapters from the website.
+
+### Commands
+
+| Command | What it does |
+| --- | --- |
+| `php ~/aduna.fit/manhuani/admin/cli.php connectors` | Shows each connector's health |
+| `php ~/aduna.fit/manhuani/admin/cli.php connector-test mangadex` | Tests one connector (`mangadex`, `mangaupdates`, `anilist`, `bangumi`, `ann`) |
+| `php ~/aduna.fit/manhuani/admin/cli.php connector-run mangadex` | Runs one enabled connector now |
+
+The normal cron job (`cli.php run`) already runs every connector that's due. You don't need a new cron job.
+
+### Sources that were checked and not used
+
+| Source | Why not |
+| --- | --- |
+| WEBTOON (RSS feeds) | Its terms forbid "unauthorized automated means to compile information". Add a WEBTOON series feed under **Sources** only if WEBTOON gives you permission. |
+| Tapas (RSS feeds) | Its robots.txt blocks `/rss/` for all bots. |
+| Kitsu | Its robots.txt blocks `/api/`. |
+| MyAnimeList API | It needs a Client ID that you register, and its licence only covers "internal business purposes" without written permission. |
+| Jikan, Consumet, Comick and other scrapers | These aren't official APIs. They scrape other sites, so they aren't permitted. |
+
 ### Follow a series on MangaDex
 
 MangaDex has an [official API](https://api.mangadex.org/docs/) that programs are allowed to use. Each MangaDex source follows one series.
@@ -216,6 +292,12 @@ Settings live in `~/manhuani_private/config.php`. You don't need to change any o
 | `disable_after_failures` | 10 | Errors in a row before a source is switched off |
 | `log_retention_days` | 30 | How long logs are kept |
 | `mangadex_language` | en | Which translation to follow on MangaDex |
+| `discover_types` | `['manhua', 'manhwa']` | Which titles the connectors add. Add `'manga'` to include Japanese manga. |
+| `mangadex_original_languages` | `['ko', 'zh', 'zh-hk']` | Original languages MangaDex discovery follows |
+| `connector_intervals` | `[]` | Custom check intervals, e.g. `['mangadex' => 30]` (minutes) |
+| `connector_max_requests` | 12 | Request limit per connector per run |
+| `enrich_per_run` | 4 | Titles looked up per run on AniList, Bangumi and ANN |
+| `titles_published` | 300 | How many titles the website lists |
 
 Never upload `config.php` or the database to GitHub, and never move the `manhuani_private` folder inside `aduna.fit`.
 

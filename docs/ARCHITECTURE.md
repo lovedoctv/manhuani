@@ -37,6 +37,7 @@ The dashboard is plain PHP in `public/admin/`, so the build copies it to `deploy
    - The feed is fetched with a conditional GET (ETag and Last-Modified), so unchanged feeds cost almost nothing.
    - CAPTCHA, Cloudflare challenge, login and paywall responses switch the source off.
    - A MangaDex source skips robots.txt (it is an official API, governed by its own terms) and makes one request to `/manga/{id}/feed`, newest chapters first, with scanlation group names. Its updates store the group in `updates.credit` and link to `https://mangadex.org/chapter/{id}`. See `lib/apis.php`.
+   - Enabled connectors (`lib/connectors.php`) run when due, each with its own request budget, inside a try/catch so one failing API never stops the others. Their health lives in the `connectors` table.
 3. Each feed item title is parsed into series, chapter number and optional chapter title (`lib/extract.php`). Items without a chapter number or an http(s) link are skipped.
 4. Updates are inserted with a unique `dedupe_key` of series slug plus chapter number, so duplicates are ignored.
 5. `lib/publish.php` writes `data/live/*.json` atomically.
@@ -52,9 +53,24 @@ If the files don't exist, for example before the crawler is installed, nothing c
 
 Series are matched to site pages by slug. A feed title of "Dungeon Chef" becomes `dungeon-chef`, which matches `/manga/dungeon-chef/`. The list of site series comes from `data/search-index.json`.
 
+### Titles catalogue (schema 3)
+
+```
+titles          one row per series: slug, name, type, status, year, genres, rating, links (read/info), latest chapter
+title_sources   the series' id and page on each connector (mangadex, mangaupdates, anilist, bangumi, ann)
+title_keys      normalised names and "id:<connector>:<id>" keys pointing at a title, used to match
+updates         chapters; title_id, connector and readable (0 = release info only) link them to the catalogue
+api_cache       cached API answers with an expiry time
+connectors      enabled, terms accepted, state (cursors), last run, last error, fail count, next run
+```
+
+`title_save()` matches a found series by: the same id on the same connector, a cross-site id (MangaDex's `links.al` and `links.mu`), then any normalised name. Only then does it create a title. `title_add_chapter()` dedupes on `sha1(title slug | chapter)` and upgrades a chapter to a readable link when one arrives.
+
+`publish_titles()` writes `data/live/titles.json` and `data/live/title/<slug>.json`. `src/pages/new-titles.astro` and `src/pages/title/index.astro` are static shells that `live.ts` fills in, so new titles need no rebuild.
+
 ### Database upgrades
 
-`meta.schema_version` records the database version. When the code is newer (`DB_SCHEMA_VERSION` in `lib/db.php`), the dashboard and the CLI run `db_migrate()` once, which adds missing tables and columns. Version 2 added `updates.credit`.
+`meta.schema_version` records the database version. When the code is newer (`DB_SCHEMA_VERSION` in `lib/db.php`), the dashboard and the CLI run `db_migrate()` once, which adds missing tables and columns. Version 2 added `updates.credit`. Version 3 added the titles catalogue, connectors and API cache.
 
 ### Security
 

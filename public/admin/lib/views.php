@@ -8,7 +8,7 @@ function page_url(string $page, array $params = []): string
 
 function layout_start(string $title, string $active = ''): void
 {
-    $nav = ['dashboard' => 'Dashboard', 'sources' => 'Sources', 'updates' => 'Updates', 'series_info' => 'Series info', 'logs' => 'Logs'];
+    $nav = ['dashboard' => 'Dashboard', 'sources' => 'Sources', 'connectors' => 'Connectors', 'titles' => 'Titles', 'updates' => 'Updates', 'series_info' => 'Series info', 'logs' => 'Logs'];
     ?><!doctype html>
 <html lang="en">
 <head>

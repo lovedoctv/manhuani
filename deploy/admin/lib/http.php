@@ -14,6 +14,7 @@ final class Http
     private static array $lastRequestAt = [];
     private static int $requestCount = 0;
     private static array $hostDelay = [];
+    private static ?int $budget = null;
 
     public static function setHostDelay(string $host, int $seconds): void
     {
@@ -25,9 +26,11 @@ final class Http
         return self::$requestCount;
     }
 
-    public static function resetBudget(): void
+    /** Starts a new request budget: $max requests, or max_requests_per_run when null. */
+    public static function resetBudget(?int $max = null): void
     {
         self::$requestCount = 0;
+        self::$budget = $max;
     }
 
     /** @return array{status:int, headers:array<string,string>, body:string, url:string, error:?string} */
@@ -56,7 +59,7 @@ final class Http
 
     private static function once(string $url, array $extraHeaders, ?string $postBody = null): array
     {
-        if (self::$requestCount >= (int) config('max_requests_per_run')) {
+        if (self::$requestCount >= (self::$budget ?? (int) config('max_requests_per_run'))) {
             return self::fail($url, 'Request limit for this run reached; will continue next run');
         }
         $parts = parse_url($url);

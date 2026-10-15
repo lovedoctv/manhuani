@@ -34,14 +34,20 @@ function crawler_run(?int $onlySourceId = null, bool $force = false): array
                 source_failed($s, $e->getMessage());
             }
         }
-        if ($stats['new'] > 0 || $force || !is_file(site_dir() . '/data/live/latest.json')) {
+        // Built-in API connectors. A failing one is logged and skipped; the rest still run.
+        $cx = $onlySourceId === null ? connectors_run($force) : ['checked' => 0, 'new' => 0, 'titles' => 0, 'errors' => 0];
+        $stats['checked'] += $cx['checked'];
+        $stats['new'] += $cx['new'];
+        $stats['errors'] += $cx['errors'];
+        $stats['titles'] = $cx['titles'];
+        if ($stats['new'] > 0 || $cx['titles'] > 0 || $force || !is_file(site_dir() . '/data/live/latest.json') || !is_file(site_dir() . '/data/live/titles.json') || meta_get('needs_publish') === '1') {
             publish_updates();
         }
         prune_old_rows();
         meta_set('last_run_at', now());
         meta_set('last_run_stats', json_encode($stats));
         if ($stats['checked']) {
-            log_info("Run finished: {$stats['checked']} source(s) checked, {$stats['new']} new update(s), {$stats['errors']} error(s).");
+            log_info("Run finished: {$stats['checked']} source(s) and connector(s) checked, {$stats['new']} new update(s), {$cx['titles']} new title(s), {$stats['errors']} error(s).");
         }
     } finally {
         flock($lock, LOCK_UN);
@@ -110,6 +116,13 @@ function crawl_source(array $s): int
         $x = extract_chapter($item['title'], $parsed['title']);
         if ($x['number'] === null || $x['series'] === '') {
             continue; // only chapter releases are stored
+        }
+        // A series the catalogue already knows (perhaps under another name) is stored under that title.
+        if ($tid = title_find_by_names([$x['series']])) {
+            if (title_add_chapter($tid, '', (float) $x['number'], $x['label'] ?: null, $item['date'], str_limit($item['link'], 500), null, true, $id)) {
+                $new++;
+            }
+            continue;
         }
         $slug = slugify($x['series']);
         if ($slug === '') {

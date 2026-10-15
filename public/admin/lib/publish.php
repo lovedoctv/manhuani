@@ -5,6 +5,7 @@ defined('MANHUANI') || exit;
  * Writes the public JSON files the website reads:
  *   data/live/latest.json            newest updates for the Latest Updates section
  *   data/live/series/<slug>.json     extra chapters for series pages on your site
+ *   data/live/titles.json, title/*   titles found by the connectors (see publish_titles)
  * Metadata and links only. No images or chapter content.
  */
 function publish_updates(): int
@@ -12,20 +13,23 @@ function publish_updates(): int
     $base = site_dir() . '/data/live';
     $onSite = site_series_index();
     $limit = (int) config('published_updates');
+    $from = 'FROM updates u LEFT JOIN sources s ON s.id = u.source_id LEFT JOIN titles t ON t.id = u.title_id
+        WHERE u.hidden = 0 AND (s.id IS NOT NULL OR u.connector IS NOT NULL) AND (t.id IS NULL OR t.hidden = 0)';
+    $cols = 'u.*, s.name AS source_name, s.method AS source_method, t.id AS tid';
 
-    $rows = db_all("SELECT u.*, s.name AS source_name, s.method AS source_method FROM updates u JOIN sources s ON s.id = u.source_id
-        WHERE u.hidden = 0 ORDER BY COALESCE(u.release_date, u.created_at) DESC, u.id DESC LIMIT $limit");
-
+    $rows = db_all("SELECT $cols $from ORDER BY COALESCE(u.release_date, u.created_at) DESC, u.id DESC LIMIT $limit");
     $updates = array_map(fn ($r) => [
         'series' => $r['series_title'],
         'slug' => $r['series_slug'],
         'onSite' => isset($onSite[$r['series_slug']]),
+        'titlePage' => !isset($onSite[$r['series_slug']]) && $r['tid'] !== null,
         'cover' => $onSite[$r['series_slug']]['cover'] ?? null,
         'chapter' => (float) $r['chapter_number'],
         'title' => $r['chapter_label'],
         'date' => gmdate('c', ts($r['release_date'] ?? $r['created_at'])),
         'sourceUrl' => $r['source_url'],
-        'source' => $r['source_method'] === 'mangadex' ? 'MangaDex' : $r['source_name'],
+        'readable' => (bool) $r['readable'],
+        'source' => update_source_label($r),
         'credit' => $r['credit'],
     ], $rows);
 
@@ -34,28 +38,103 @@ function publish_updates(): int
     // Per-series chapter lists, only for series that have a page on your site.
     $written = [];
     foreach (array_keys($onSite) as $slug) {
-        $chs = db_all('SELECT u.chapter_number, u.chapter_label, u.release_date, u.created_at, u.source_url, u.credit, s.name AS source_name, s.method AS source_method FROM updates u JOIN sources s ON s.id = u.source_id WHERE u.series_slug = ? AND u.hidden = 0 ORDER BY u.chapter_number DESC LIMIT 200', [$slug]);
+        $chs = db_all("SELECT $cols $from AND u.series_slug = ? ORDER BY u.chapter_number DESC LIMIT 200", [$slug]);
         if (!$chs) {
             continue;
         }
-        $chapters = array_map(fn ($c) => [
-            'number' => (float) $c['chapter_number'],
-            'title' => $c['chapter_label'],
-            'date' => gmdate('c', ts($c['release_date'] ?? $c['created_at'])),
-            'sourceUrl' => $c['source_url'],
-            'source' => $c['source_method'] === 'mangadex' ? 'MangaDex' : $c['source_name'],
-            'credit' => $c['credit'],
-        ], $chs);
-        write_atomic("$base/series/$slug.json", json_encode(['chapters' => $chapters], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        write_if_changed("$base/series/$slug.json", json_encode(['chapters' => array_map('chapter_json', $chs)], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         $written[$slug] = true;
     }
-    foreach (glob("$base/series/*.json") ?: [] as $file) {
-        if (!isset($written[basename($file, '.json')])) {
+    remove_unlisted("$base/series", $written);
+
+    publish_titles($base, $onSite);
+    meta_set('last_publish_at', now());
+    meta_set('needs_publish', '0');
+    return count($updates);
+}
+
+/**
+ * Titles found by the connectors, for pages that need no rebuild:
+ *   data/live/titles.json          newest titles (the "New titles" section and page)
+ *   data/live/title/<slug>.json    one title's details, links and chapters (title/?s=<slug>)
+ */
+function publish_titles(string $base, array $onSite): void
+{
+    $limit = (int) config('titles_published');
+    $titles = db_all("SELECT * FROM titles WHERE hidden = 0 ORDER BY COALESCE(latest_chapter_at, created_at) DESC, id DESC LIMIT $limit");
+    $list = [];
+    $written = [];
+    foreach ($titles as $t) {
+        $sources = db_all('SELECT connector, url FROM title_sources WHERE title_id = ? ORDER BY id', [$t['id']]);
+        $credits = array_map(fn ($x) => ['name' => connector_label($x['connector']), 'url' => $x['url']], $sources);
+        $links = json_decode((string) $t['links'], true) ?: [];
+        $item = [
+            'slug' => $t['slug'],
+            'title' => $t['title'],
+            'type' => $t['type'],
+            'status' => $t['status'],
+            'year' => $t['year'] !== null ? (int) $t['year'] : null,
+            'genres' => json_decode((string) $t['genres'], true) ?: [],
+            'rating' => $t['rating'] !== null ? (float) $t['rating'] : null,
+            'latestChapter' => $t['latest_chapter'] !== null ? (float) $t['latest_chapter'] : null,
+            'latestDate' => $t['latest_chapter_at'] ? gmdate('c', ts($t['latest_chapter_at'])) : null,
+            'added' => gmdate('c', ts($t['created_at'])),
+            'onSite' => isset($onSite[$t['slug']]),
+            'readable' => (bool) array_filter($links, fn ($l) => $l['kind'] === 'read'),
+            'sources' => array_values(array_unique(array_column($credits, 'name'))),
+        ];
+        $list[] = $item;
+        $chs = db_all("SELECT u.*, s.name AS source_name, s.method AS source_method FROM updates u LEFT JOIN sources s ON s.id = u.source_id
+            WHERE u.title_id = ? AND u.hidden = 0 ORDER BY u.chapter_number DESC LIMIT 300", [$t['id']]);
+        $detail = $item + [
+            'altTitles' => json_decode((string) $t['alt_titles'], true) ?: [],
+            'links' => $links,
+            'credits' => $credits,
+            'chapters' => array_map('chapter_json', $chs),
+        ];
+        write_if_changed("$base/title/{$t['slug']}.json", json_encode($detail, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        $written[$t['slug']] = true;
+    }
+    remove_unlisted("$base/title", $written);
+    write_atomic("$base/titles.json", json_encode(['generated' => gmdate('c'), 'titles' => $list], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+}
+
+function chapter_json(array $c): array
+{
+    return [
+        'number' => (float) $c['chapter_number'],
+        'title' => $c['chapter_label'],
+        'date' => gmdate('c', ts($c['release_date'] ?? $c['created_at'])),
+        'sourceUrl' => $c['source_url'],
+        'readable' => (bool) ($c['readable'] ?? true),
+        'source' => update_source_label($c),
+        'credit' => $c['credit'],
+    ];
+}
+
+/** Who to credit for an update: the connector, MangaDex, or the feed source's name. */
+function update_source_label(array $r): string
+{
+    if (!empty($r['connector'])) {
+        return connector_label($r['connector']);
+    }
+    return ($r['source_method'] ?? null) === 'mangadex' ? 'MangaDex' : (string) ($r['source_name'] ?? '');
+}
+
+function write_if_changed(string $path, string $contents): void
+{
+    if (!is_file($path) || file_get_contents($path) !== $contents) {
+        write_atomic($path, $contents);
+    }
+}
+
+function remove_unlisted(string $dir, array $keep): void
+{
+    foreach (glob("$dir/*.json") ?: [] as $file) {
+        if (!isset($keep[basename($file, '.json')])) {
             unlink($file);
         }
     }
-    meta_set('last_publish_at', now());
-    return count($updates);
 }
 
 /** Series that already have pages on the site, read from the site's own search index. */

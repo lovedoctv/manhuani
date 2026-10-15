@@ -57,7 +57,7 @@ function write_config(string $dir, array $values): void
 }
 
 try {
-    if (in_array($cmd, ['run', 'test', 'publish', 'status'], true) && private_dir() !== null) {
+    if (in_array($cmd, ['run', 'test', 'publish', 'status', 'connectors', 'connector-test', 'connector-run'], true) && private_dir() !== null) {
         db_ensure_schema();
     }
     switch ($cmd) {
@@ -107,7 +107,37 @@ try {
         case 'run':
             $all = in_array('--all', $argv, true);
             $stats = crawler_run(null, $all);
-            fwrite(STDOUT, "Checked {$stats['checked']} source(s), {$stats['new']} new update(s), {$stats['errors']} error(s).\n");
+            fwrite(STDOUT, "Checked {$stats['checked']} source(s) and connector(s), {$stats['new']} new update(s), " . ($stats['titles'] ?? 0) . " new title(s), {$stats['errors']} error(s).\n");
+            break;
+
+        case 'connectors':
+            foreach (connectors_all() as $name => $c) {
+                $st = json_decode((string) $c['last_stats'], true) ?: [];
+                fwrite(STDOUT, str_pad($name, 14) . str_pad($c['enabled'] ? 'on' : 'off', 5) . 'last ok: ' . str_pad($c['last_success_at'] ?? 'never', 20)
+                    . 'next: ' . str_pad($c['enabled'] ? ($c['next_run_at'] ?? 'now') : '-', 20) . 'fails: ' . (int) $c['fail_count']
+                    . ($st ? "  last run: {$st['titles']} title(s), {$st['new']} chapter(s), {$st['linked']} matched, {$st['requests']} request(s)" : '')
+                    . ($c['last_error'] ? "\n              error: {$c['last_error']}" : '') . "\n");
+            }
+            break;
+
+        case 'connector-test':
+            $r = connector_test((string) ($argv[2] ?? ''));
+            foreach ($r['lines'] as [$lvl, $txt]) {
+                fwrite(STDOUT, str_pad(strtoupper($lvl), 8) . " $txt\n");
+            }
+            fwrite(STDOUT, $r['ok'] ? "Result: works.\n" : "Result: not working.\n");
+            break;
+
+        case 'connector-run':
+            $name = (string) ($argv[2] ?? '');
+            $s = connectors_run(true, $name);
+            if ($s['checked'] === 0) {
+                throw new RuntimeException("Connector \"$name\" is unknown or not enabled. Enable it on the dashboard's Connectors page first.");
+            }
+            if ($s['new'] || $s['titles']) {
+                publish_updates();
+            }
+            fwrite(STDOUT, "{$s['titles']} new title(s), {$s['new']} new chapter(s), {$s['errors']} error(s).\n");
             break;
 
         case 'test':
@@ -136,12 +166,12 @@ try {
             break;
 
         case 'status':
-            $c = db_one('SELECT (SELECT COUNT(*) FROM sources) s, (SELECT COUNT(*) FROM sources WHERE enabled=1) e, (SELECT COUNT(*) FROM updates) u');
-            fwrite(STDOUT, "Sources: {$c['s']} ({$c['e']} enabled)\nUpdates: {$c['u']}\nLast run: " . (meta_get('last_run_at') ?? 'never') . " UTC\n");
+            $c = db_one('SELECT (SELECT COUNT(*) FROM sources) s, (SELECT COUNT(*) FROM sources WHERE enabled=1) e, (SELECT COUNT(*) FROM updates) u, (SELECT COUNT(*) FROM titles) t, (SELECT COUNT(*) FROM connectors WHERE enabled=1) c');
+            fwrite(STDOUT, "Sources: {$c['s']} ({$c['e']} enabled)\nConnectors enabled: {$c['c']} of " . count(connector_defs()) . "\nTitles: {$c['t']}\nUpdates: {$c['u']}\nLast run: " . (meta_get('last_run_at') ?? 'never') . " UTC\n");
             break;
 
         default:
-            fwrite(STDOUT, "Usage: php cli.php setup | run [--all] | test ID | publish | password | status\n");
+            fwrite(STDOUT, "Usage: php cli.php setup | run [--all] | test ID | publish | password | status | connectors | connector-test NAME | connector-run NAME\n");
     }
 } catch (Throwable $e) {
     fwrite(STDERR, 'Error: ' . $e->getMessage() . "\n");
