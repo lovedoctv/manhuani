@@ -34,10 +34,12 @@ function discover_feeds(string $html, string $baseUrl): array
             if (!preg_match('/rel=["\']?[^"\'>]*alternate/i', $tag)) {
                 continue;
             }
-            if (!preg_match('/type=["\']?(application\/(rss|atom)\+xml|application\/feed\+json|application\/json)/i', $tag)) {
+            // Plain application/json links on WordPress sites point at the REST API
+            // (or oEmbed), which is never used automatically, so only real feed types count.
+            if (!preg_match('/type=["\']?(application\/(rss|atom)\+xml|application\/feed\+json)/i', $tag)) {
                 continue;
             }
-            if (preg_match('/href=["\']([^"\']+)["\']/i', $tag, $hm)) {
+            if (preg_match('/href=["\']([^"\']+)["\']/i', $tag, $hm) && !preg_match('#/wp-json/|oembed#i', $hm[1])) {
                 $found[] = resolve_url($baseUrl, $hm[1]);
             }
         }
