@@ -88,7 +88,14 @@ try {
             }
             write_config($dir, $values);
             putenv("MANHUANI_PRIVATE_DIR=$dir");
-            db_migrate();
+            try {
+                db_migrate();
+            } catch (Throwable $e) {
+                // Remove the half-finished settings so running setup again starts fresh.
+                @unlink($dir . '/config.php');
+                throw new RuntimeException('Could not set up the database: ' . $e->getMessage()
+                    . "\nNothing was saved. Check the details and run setup again.");
+            }
             log_info('Crawler installed');
             publish_updates();
             fwrite(STDOUT, "\nInstalled. Open https://aduna.fit/manhuani/admin/ and log in with your password.\n");
