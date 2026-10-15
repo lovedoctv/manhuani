@@ -143,7 +143,7 @@ The test also shows a few examples of the chapter releases it understood.
 
 ## Connectors: five official APIs, fully automatic
 
-**Connectors** in the dashboard menu lists five built-in sources. Each is an official API published for programs to use. Once you enable one, the cron job runs it on its own schedule. Nobody has to search for anything. New manhwa and manhua titles appear in **New Titles** on the home page and at `/manhuani/new-titles/`, each with its own page at `/manhuani/title/?s=…`. New chapters appear in **Latest Updates**.
+**Connectors** in the dashboard menu lists five built-in sources. Each is an official API published for programs to use. Once you enable one, the cron job runs it on its own schedule. Nobody has to search for anything. New manhwa and manhua titles appear in **New Titles** on the home page and at `/manhuani/new-titles/`, each with its own page at `/manhuani/title/?s=…`. New chapters appear in **Latest Updates**. Series from your own feed and MangaDex sources get a title page too, so a visitor clicking a series lands on your site first, sees the chapter list, and only then opens a chapter on the site that publishes it.
 
 | Connector | What it gives your site | Reading links | Checks every |
 | --- | --- | --- | --- |

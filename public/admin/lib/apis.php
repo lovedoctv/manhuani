@@ -246,7 +246,7 @@ function mangadex_crawl(array $s): int
     }
     $new = 0;
     foreach (mangadex_chapters($r['data'], $t['title']) as $c) {
-        if ($tid = title_find_by_names([$c['series']])) {
+        if ($tid = title_for_source($s, $c['series'])) {
             if (title_add_chapter($tid, '', $c['number'], $c['label'], $c['date'], $c['url'], $c['credit'], true, (int) $s['id'])) {
                 $new++;
             }

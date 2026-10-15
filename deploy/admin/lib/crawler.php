@@ -17,6 +17,7 @@ function crawler_run(?int $onlySourceId = null, bool $force = false): array
     Http::resetBudget();
     $stats = ['checked' => 0, 'new' => 0, 'errors' => 0];
     try {
+        titles_adopt_feed_updates();
         if ($onlySourceId !== null) {
             $sources = db_all('SELECT * FROM sources WHERE id = ? AND enabled = 1', [$onlySourceId]);
         } else {
@@ -117,8 +118,8 @@ function crawl_source(array $s): int
         if ($x['number'] === null || $x['series'] === '') {
             continue; // only chapter releases are stored
         }
-        // A series the catalogue already knows (perhaps under another name) is stored under that title.
-        if ($tid = title_find_by_names([$x['series']])) {
+        // Each series gets a title page on the site (or joins one it already has under another name).
+        if ($tid = title_for_source($s, $x['series'])) {
             if (title_add_chapter($tid, '', (float) $x['number'], $x['label'] ?: null, $item['date'], str_limit($item['link'], 500), null, true, $id)) {
                 $new++;
             }

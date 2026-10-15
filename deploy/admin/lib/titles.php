@@ -45,6 +45,48 @@ function title_find_by_names(array $names): ?int
     return null;
 }
 
+/**
+ * The catalogue title for a series seen in one of your own sources (a feed or a
+ * MangaDex page), created if needed, so visitors get a page on this site with the
+ * chapter list before they leave to read on the source's website.
+ */
+function title_for_source(array $source, string $series): ?int
+{
+    if ($tid = title_find_by_names([$series])) {
+        return $tid;
+    }
+    $slug = slugify($series);
+    if ($slug === '') {
+        return null;
+    }
+    $url = (string) $source['url'];
+    [$tid] = title_save([
+        'connector' => 'source',
+        'external_id' => $source['id'] . ':' . $slug,
+        'url' => $url,
+        'title' => $series,
+        'links' => [['name' => (string) $source['name'], 'url' => $url, 'kind' => 'read']],
+        'create' => true,
+    ]);
+    return $tid ?: null;
+}
+
+/** Gives chapters saved before titles existed (or before this upgrade) their title page. */
+function titles_adopt_feed_updates(): void
+{
+    $rows = db_all('SELECT s.*, u.series_title FROM updates u JOIN sources s ON s.id = u.source_id
+        WHERE u.title_id IS NULL GROUP BY s.id, u.series_title LIMIT 200');
+    foreach ($rows as $r) {
+        if (!($tid = title_for_source($r, (string) $r['series_title']))) {
+            continue;
+        }
+        db_run('UPDATE updates SET title_id = ? WHERE source_id = ? AND series_title = ? AND title_id IS NULL', [$tid, $r['id'], $r['series_title']]);
+        $last = db_one('SELECT chapter_number, release_date, created_at FROM updates WHERE title_id = ? ORDER BY chapter_number DESC LIMIT 1', [$tid]);
+        db_run('UPDATE titles SET latest_chapter = ?, latest_chapter_at = ? WHERE id = ?', [$last['chapter_number'], $last['release_date'] ?? $last['created_at'], $tid]);
+        meta_set('needs_publish', '1');
+    }
+}
+
 function title_get(int $id): ?array
 {
     return db_one('SELECT * FROM titles WHERE id = ?', [$id]);
@@ -195,6 +237,12 @@ function title_add_chapter(int $titleId, string $connector, float $number, ?stri
         'dedupe_key' => $dedupe,
         'created_at' => now(),
     ]);
+    if (!$inserted) {
+        // A chapter stored before its title existed joins the title's page.
+        if (db_run('UPDATE updates SET title_id = ? WHERE dedupe_key = ? AND title_id IS NULL', [$titleId, $dedupe]) > 0) {
+            meta_set('needs_publish', '1');
+        }
+    }
     if (!$inserted && $readable) {
         $upgraded = db_run('UPDATE updates SET source_url = ?, credit = ?, connector = ?, source_id = ?, readable = 1, chapter_label = COALESCE(chapter_label, ?), release_date = COALESCE(?, release_date) WHERE dedupe_key = ? AND readable = 0',
             [str_limit($url, 500), $credit, $connector === '' ? null : $connector, $sourceId, $label, $date, $dedupe]);

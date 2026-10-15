@@ -79,7 +79,7 @@ function connector_defs(): array
 
 function connector_label(?string $name): string
 {
-    return connector_defs()[$name]['label'] ?? (string) $name;
+    return $name === 'source' ? 'Your sources' : (connector_defs()[$name]['label'] ?? (string) $name);
 }
 
 function connector_row(string $name): array
