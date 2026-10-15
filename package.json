@@ -1,0 +1,16 @@
+{
+  "name": "manhuani",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && node scripts/make-deploy.mjs",
+    "preview": "node scripts/serve.mjs",
+    "check": "node scripts/check-links.mjs"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.3",
+    "astro": "^7.4.0"
+  }
+}

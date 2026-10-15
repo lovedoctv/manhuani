@@ -1,0 +1,102 @@
+---
+import { url } from '../../../lib/data';
+import Base from '../../../layouts/Base.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import Rating from '../../../components/Rating.astro';
+import SeriesGrid from '../../../components/SeriesGrid.astro';
+import {
+  allSeries, type Series, seriesUrl, chapterUrl, coverUrl, sortedChapters, genreName, genreUrl,
+  yearUrl, formatDate, statusLabel, absoluteUrl,
+} from '../../../lib/data';
+import site from '../../../../site.config.mjs';
+
+export async function getStaticPaths() {
+  return (await allSeries()).map((series) => ({ params: { slug: series.id }, props: { series } }));
+}
+const { series } = Astro.props as { series: Series };
+const d = series.data;
+const chapters = sortedChapters(series);
+const first = chapters.at(-1);
+const latest = chapters[0];
+const related = (await allSeries())
+  .filter((s) => s.id !== series.id && s.data.genres.some((g) => d.genres.includes(g)))
+  .slice(0, 6);
+const description = `Read ${d.title} ${d.type}. ${d.synopsis}`.slice(0, 158);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ComicSeries',
+  name: d.title,
+  alternateName: d.altTitles.length ? d.altTitles : undefined,
+  url: absoluteUrl(seriesUrl(series.id)),
+  image: absoluteUrl(coverUrl(series)),
+  description: d.synopsis,
+  genre: d.genres.map(genreName),
+  author: d.author ? { '@type': 'Person', name: d.author } : undefined,
+  datePublished: String(d.releaseYear),
+  publisher: { '@type': 'Organization', name: site.name },
+  aggregateRating: d.rating ? { '@type': 'AggregateRating', ratingValue: d.rating, bestRating: 5, ratingCount: 1 } : undefined,
+};
+---
+<Base title={`${d.title} – Read ${d.type === 'manhwa' ? 'Manhwa' : 'Manhua'} Online`} description={description} image={coverUrl(series)} type="book" jsonLd={jsonLd}>
+  <div class="series-hero" style={`--cover:url('${coverUrl(series)}')`}>
+    <div class="container">
+      <Breadcrumbs items={[{ name: 'All Series', href: url('/manga/') }, { name: d.title, href: seriesUrl(series.id) }]} />
+      <div class="series-head">
+        <img class="series-cover" src={coverUrl(series)} alt={`${d.title} cover`} width="220" height="300" loading="eager" fetchpriority="high" />
+        <div class="series-info">
+          <span class:list={['type-badge', 'inline', d.type]}>{d.type}</span>
+          <h1>{d.title}</h1>
+          {d.altTitles.length > 0 && <p class="muted alt">{d.altTitles.join(' · ')}</p>}
+          {d.rating !== undefined && <Rating value={d.rating} />}
+          <dl class="facts">
+            <div><dt>Status</dt><dd>{statusLabel(d.status)}</dd></div>
+            <div><dt>Type</dt><dd class="cap">{d.type}</dd></div>
+            <div><dt>Released</dt><dd><a href={yearUrl(d.releaseYear)}>{d.releaseYear}</a></dd></div>
+            {d.author && <div><dt>Author</dt><dd>{d.author}</dd></div>}
+            {d.artist && d.artist !== d.author && <div><dt>Artist</dt><dd>{d.artist}</dd></div>}
+            <div><dt>Chapters</dt><dd>{chapters.length}</dd></div>
+          </dl>
+          <div class="genre-tags">{d.genres.map((g) => <a href={genreUrl(g)}>{genreName(g)}</a>)}</div>
+          <div class="series-actions">
+            {first && <a class="btn" href={chapterUrl(series.id, first.number)}>Read First</a>}
+            {latest && <a class="btn btn-ghost" href={chapterUrl(series.id, latest.number)}>Read Latest (Ch. {latest.number})</a>}
+            <button class="btn btn-ghost bookmark-btn" type="button" data-bookmark={series.id} data-title={d.title}>☆ Bookmark</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container block series-body">
+    <section>
+      <h2>Synopsis</h2>
+      <p class="synopsis">{d.synopsis}</p>
+      {d.source && <p class="muted small">Source: <a href={d.source.url} rel="nofollow noopener" target="_blank">{d.source.name}</a></p>}
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Chapters</h2>
+        <input type="search" class="chapter-filter" placeholder="Find chapter number" aria-label="Find chapter" inputmode="numeric" />
+      </div>
+      <ul class="chapter-list" data-live-series={site.liveUpdates ? series.id : undefined}>
+        {chapters.map((c) => (
+          <li data-n={c.number}>
+            <a href={chapterUrl(series.id, c.number)}>
+              <span>Chapter {c.number}{c.title && ` – ${c.title}`}</span>
+              <time class="ago" datetime={c.date.toISOString()}>{formatDate(c.date)}</time>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    {related.length > 0 && (
+      <section>
+        <div class="section-head"><h2>You May Also Like</h2></div>
+        <SeriesGrid items={related} variant="popular" />
+      </section>
+    )}
+  </div>
+</Base>

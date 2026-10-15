@@ -1,0 +1,16 @@
+---
+import { url } from '../lib/data';
+import Base from '../layouts/Base.astro';
+---
+<Base title="Page Not Found" description="The page you were looking for does not exist." noindex>
+  <div class="container narrow block center not-found">
+    <p class="big">404</p>
+    <h1>Page not found</h1>
+    <p class="muted">The page may have moved, or the link may be wrong.</p>
+    <form class="big-search" action={url('/search/')} method="get" role="search">
+      <input type="search" name="q" placeholder="Search series..." aria-label="Search series" />
+      <button class="btn" type="submit">Search</button>
+    </form>
+    <p><a class="btn btn-ghost" href={url('/')}>Go to homepage</a></p>
+  </div>
+</Base>

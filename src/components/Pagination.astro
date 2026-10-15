@@ -1,0 +1,16 @@
+---
+interface Props { current: number; total: number; url: (n: number) => string }
+const { current, total, url } = Astro.props;
+const start = Math.max(1, current - 2);
+const end = Math.min(total, current + 2);
+const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+---
+{total > 1 && (
+  <nav class="pagination" aria-label="Pagination">
+    <span class="page-info">Page {current} of {total}</span>
+    {current > 1 && <a href={url(current - 1)} rel="prev">&laquo; Prev</a>}
+    {pages.map((n) => (n === current ? <span class="current" aria-current="page">{n}</span> : <a href={url(n)}>{n}</a>))}
+    {current < total && <a href={url(current + 1)} rel="next">Next &raquo;</a>}
+    {current < total && <a href={url(total)}>Last &raquo;</a>}
+  </nav>
+)}

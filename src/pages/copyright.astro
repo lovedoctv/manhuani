@@ -1,0 +1,9 @@
+---
+import { url } from '../lib/data';
+import TextPage from '../components/TextPage.astro';
+import site from '../../site.config.mjs';
+---
+<TextPage title="Copyright Notice" path={url('/copyright/')} description={`Copyright notice for ${site.name}.`}>
+  <p>All series titles, cover art and chapter content belong to their original creators and publishers. {site.name} shares metadata and links to support official releases.</p>
+  <p>If you enjoy a series, please support the creators by reading it on official platforms. Rights holders can contact us through our <a href={url('/dmca/')}>DMCA Policy</a>.</p>
+</TextPage>

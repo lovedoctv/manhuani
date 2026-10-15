@@ -1,0 +1,17 @@
+---
+# cPanel Git Version Control deployment.
+# When you click "Deploy HEAD Commit" in cPanel, these commands run on your server.
+# They copy ONLY the finished website (the deploy/ folder) into your document root.
+# Source code, .git, package files and node_modules are never copied.
+#
+# DEPLOYPATH is the folder the site is served from, ending with a slash.
+# $HOME is your cPanel home folder (for example /home/yourcpaneluser).
+# aduna.fit is an addon domain whose document root is $HOME/aduna.fit
+# (see cPanel > Domains > Document Root), so https://aduna.fit/manhuani/
+# is served from $HOME/aduna.fit/manhuani/. Only this folder is touched.
+deployment:
+  tasks:
+    - export DEPLOYPATH=$HOME/aduna.fit/manhuani/
+    - /bin/test -f deploy/index.html
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R deploy/. $DEPLOYPATH

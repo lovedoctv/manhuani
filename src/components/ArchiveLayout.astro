@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+import Sidebar from './Sidebar.astro';
+import Breadcrumbs from './Breadcrumbs.astro';
+import SeriesGrid from './SeriesGrid.astro';
+import Pagination from './Pagination.astro';
+import type { Series } from '../lib/data';
+
+interface Props {
+  title: string; heading: string; description: string; intro?: string;
+  crumbs: { name: string; href: string }[]; items: Series[];
+  page?: { current: number; total: number; url: (n: number) => string };
+}
+const { title, heading, description, intro, crumbs, items, page } = Astro.props;
+---
+<Base title={title} description={description} noindex={!!page && page.current > 1}>
+  <div class="container layout">
+    <div class="content">
+      <Breadcrumbs items={crumbs} />
+      <h1 class="page-title">{heading}</h1>
+      {intro && <p class="muted intro">{intro}</p>}
+      {items.length ? <SeriesGrid items={items} eagerCount={4} /> : <p class="empty">No series here yet.</p>}
+      {page && <Pagination {...page} />}
+    </div>
+    <Sidebar />
+  </div>
+</Base>
