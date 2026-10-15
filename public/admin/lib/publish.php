@@ -11,6 +11,7 @@ defined('MANHUANI') || exit;
  */
 function publish_updates(): int
 {
+    titles_adopt_feed_updates(); // every chapter gets its title and chapter pages
     $base = site_dir() . '/data/live';
     $onSite = site_series_index();
     hosted_pages(pages_publish());
@@ -54,6 +55,7 @@ function publish_updates(): int
     publish_titles($base, $onSite);
     meta_set('last_publish_at', now());
     meta_set('needs_publish', '0');
+    meta_set('published_version', MANHUANI_VERSION);
     return count($updates);
 }
 
