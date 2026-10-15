@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+---
+<Base title="My Bookmarks" description="Series you have bookmarked on this device." noindex>
+  <div class="container block">
+    <Breadcrumbs items={[{ name: 'Bookmarks', href: '/bookmarks/' }]} />
+    <h1 class="page-title">My Bookmarks</h1>
+    <p class="muted">Bookmarks are saved in this browser only.</p>
+    <div id="bookmark-results" class="series-grid"></div>
+    <p id="bookmark-empty" class="empty" hidden>You haven't bookmarked any series yet. Open a series and tap ☆ Bookmark.</p>
+  </div>
+  <script>
+    import '../scripts/bookmarks-page.ts';
+  </script>
+</Base>

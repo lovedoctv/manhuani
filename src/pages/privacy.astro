@@ -1,0 +1,9 @@
+---
+import TextPage from '../components/TextPage.astro';
+import site from '../../site.config.mjs';
+---
+<TextPage title="Privacy Policy" path="/privacy/" description={`How ${site.name} handles your data.`}>
+  <p>{site.name} does not require an account and does not collect personal information.</p>
+  <p>Your bookmarks and theme choice are stored only in your own browser (local storage) and never sent to us.</p>
+  <p>If we add analytics or advertising in future, this page will be updated to describe what is collected and why.</p>
+</TextPage>

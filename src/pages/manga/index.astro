@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { allSeries, seriesUrl, coverUrl, genreName, statusLabel } from '../../lib/data';
+
+const list = [...(await allSeries())].sort((a, b) => a.data.title.localeCompare(b.data.title));
+const groups = new Map<string, typeof list>();
+for (const s of list) {
+  const k = /[a-z]/i.test(s.data.title[0]) ? s.data.title[0].toUpperCase() : '#';
+  groups.set(k, [...(groups.get(k) ?? []), s]);
+}
+---
+<Base title="All Manhua & Manhwa Series (A–Z)" description="Browse every manhua and manhwa series on the site, sorted A to Z, with genres, status and release year.">
+  <div class="container block">
+    <Breadcrumbs items={[{ name: 'All Series', href: '/manga/' }]} />
+    <h1 class="page-title">All Series</h1>
+    <nav class="az" aria-label="Jump to letter">
+      {[...groups.keys()].map((k) => <a href={`#letter-${k}`}>{k}</a>)}
+    </nav>
+    {[...groups].map(([k, items]) => (
+      <section class="az-group" id={`letter-${k}`}>
+        <h2>{k}</h2>
+        <ul class="az-list">
+          {items.map((s) => (
+            <li>
+              <a href={seriesUrl(s.id)} class="az-item">
+                <img src={coverUrl(s)} alt="" width="48" height="66" loading="lazy" decoding="async" />
+                <span>
+                  <strong>{s.data.title}</strong>
+                  <small class="muted">{s.data.type} · {statusLabel(s.data.status)} · {s.data.genres.map(genreName).join(', ')}</small>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+</Base>

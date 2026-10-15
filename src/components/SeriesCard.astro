@@ -1,0 +1,27 @@
+---
+import { type Series, seriesUrl, chapterUrl, coverUrl, sortedChapters, formatDate } from '../lib/data';
+import Rating from './Rating.astro';
+
+interface Props { series: Series; variant?: 'latest' | 'popular'; eager?: boolean }
+const { series, variant = 'latest', eager = false } = Astro.props;
+const d = series.data;
+const latest = sortedChapters(series).slice(0, 2);
+---
+<article class="card" data-series={series.id}>
+  <a href={seriesUrl(series.id)} class="card-cover">
+    <img src={coverUrl(series)} alt={`${d.title} cover`} width="175" height="238" loading={eager ? 'eager' : 'lazy'} decoding="async" />
+    {variant === 'latest' && <span class:list={['type-badge', d.type]}>{d.type}</span>}
+  </a>
+  <div class="card-body">
+    <h3 class="card-title"><a href={seriesUrl(series.id)}>{d.title}</a></h3>
+    {variant === 'latest' && d.rating !== undefined && <Rating value={d.rating} />}
+    <ul class="chapter-pills">
+      {latest.map((c) => (
+        <li>
+          <a href={chapterUrl(series.id, c.number)}>Chapter {c.number}</a>
+          <time class="ago" datetime={c.date.toISOString()}>{formatDate(c.date)}</time>
+        </li>
+      ))}
+    </ul>
+  </div>
+</article>

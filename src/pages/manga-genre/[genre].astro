@@ -1,0 +1,19 @@
+---
+import ArchiveLayout from '../../components/ArchiveLayout.astro';
+import { allSeries, allGenres, genreName, genreUrl } from '../../lib/data';
+
+export async function getStaticPaths() {
+  return (await allGenres()).map((genre) => ({ params: { genre } }));
+}
+const { genre } = Astro.params;
+const name = genreName(genre!);
+const items = (await allSeries()).filter((s) => s.data.genres.includes(genre!));
+---
+<ArchiveLayout
+  title={`${name} Manhua & Manhwa`}
+  heading={`${name} Manhua & Manhwa`}
+  description={`Read the latest ${name.toLowerCase()} manhua and manhwa chapter updates. ${items.length} series, sorted by most recent update.`}
+  intro={`${items.length} ${name.toLowerCase()} series, sorted by the latest chapter.`}
+  crumbs={[{ name: 'Genres', href: '/manga/' }, { name, href: genreUrl(genre!) }]}
+  items={items}
+/>

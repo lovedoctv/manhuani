@@ -1,0 +1,17 @@
+---
+import ArchiveLayout from '../../components/ArchiveLayout.astro';
+import { allSeries, allYears, yearUrl } from '../../lib/data';
+
+export async function getStaticPaths() {
+  return (await allYears()).map((y) => ({ params: { year: String(y) } }));
+}
+const year = Number(Astro.params.year);
+const items = (await allSeries()).filter((s) => s.data.releaseYear === year);
+---
+<ArchiveLayout
+  title={`Manhua & Manhwa Released in ${year}`}
+  heading={`Series Released in ${year}`}
+  description={`Manhua and manhwa series first released in ${year}, with their latest chapter updates.`}
+  crumbs={[{ name: 'Release Year', href: '/manga/' }, { name: String(year), href: yearUrl(year) }]}
+  items={items}
+/>

@@ -1,0 +1,36 @@
+# Rebuilds the deploy/ folder automatically whenever site files change on main,
+# so you never need Node.js installed to publish a change.
+name: Build site
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['deploy/**', '**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run check
+      - name: Commit updated deploy folder
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A deploy
+          if git diff --cached --quiet; then
+            echo "deploy/ is already up to date."
+          else
+            git commit -m "Rebuild deploy folder"
+            git push
+          fi

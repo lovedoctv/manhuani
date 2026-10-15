@@ -1,0 +1,14 @@
+---
+import TextPage from '../components/TextPage.astro';
+import site from '../../site.config.mjs';
+---
+<TextPage title="DMCA Policy" path="/dmca/" description={`${site.name} DMCA and copyright takedown policy.`}>
+  <p>{site.name} respects the intellectual property of others. If you believe content on this site infringes your copyright, send a notice to <a href="mailto:dmca@example.com">dmca@example.com</a> including:</p>
+  <ol>
+    <li>Your contact details and a statement that you are the rights holder or authorised to act for them.</li>
+    <li>The work you believe is infringed.</li>
+    <li>The URL(s) of the material on this site.</li>
+    <li>A statement that the information in your notice is accurate, under penalty of perjury.</li>
+  </ol>
+  <p>We review every notice and remove infringing material promptly.</p>
+</TextPage>

@@ -1,0 +1,20 @@
+---
+import site from '../../site.config.mjs';
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div>
+      <a href="/" class="logo small"><span class="logo-mark" aria-hidden="true">漫</span><span>Manhua<b>ni</b></span></a>
+      <p class="muted">{site.tagline}. New chapters, series guides and reading lists, updated daily.</p>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="/about/">About Us</a>
+      <a href="/dmca/">DMCA Policy</a>
+      <a href="/privacy/">Privacy Policy</a>
+      <a href="/contact/">Contact Us</a>
+      <a href="/rss.xml">RSS</a>
+    </nav>
+  </div>
+  <div class="container copyright">&copy; {year} {site.name}. All series titles and artwork belong to their respective owners.</div>
+</footer>

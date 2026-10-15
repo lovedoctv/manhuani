@@ -1,0 +1,16 @@
+---
+# cPanel Git Version Control deployment.
+# When you click "Deploy HEAD Commit" in cPanel, these commands run on your server.
+# They copy ONLY the finished website (the deploy/ folder) into your document root.
+# Source code, .git, package files and node_modules are never copied.
+#
+# DEPLOYPATH must be your domain's document root, ending with a slash.
+# $HOME is your cPanel home folder (for example /home/yourcpaneluser), so for your
+# main domain this is $HOME/public_html/. For an addon domain or subdomain, use the
+# "Document Root" shown in cPanel > Domains instead (see docs/DEPLOYMENT.md).
+deployment:
+  tasks:
+    - export DEPLOYPATH=$HOME/public_html/
+    - /bin/test -f deploy/index.html
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R deploy/. $DEPLOYPATH
