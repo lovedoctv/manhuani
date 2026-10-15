@@ -118,6 +118,7 @@ function db_migrate(): void
             chapter_label {$str(255)} NULL,
             release_date {$str(19)} NULL,
             source_url {$str(500)} NOT NULL,
+            credit {$str(255)} NULL,
             dedupe_key CHAR(40) NOT NULL,
             hidden INTEGER NOT NULL DEFAULT 0,
             created_at {$str(19)} NOT NULL,
@@ -165,5 +166,32 @@ function db_migrate(): void
             db()->exec("CREATE INDEX IF NOT EXISTS $name ON $on");
         }
     }
-    meta_set('schema_version', '1');
+    // Schema 2: who to credit for a chapter (e.g. the scanlation group on MangaDex).
+    if (!db_has_column('updates', 'credit')) {
+        db()->exec('ALTER TABLE updates ADD COLUMN credit ' . ($mysql ? 'VARCHAR(255)' : 'TEXT') . ' NULL');
+    }
+    meta_set('schema_version', (string) DB_SCHEMA_VERSION);
+}
+
+const DB_SCHEMA_VERSION = 2;
+
+/** Runs db_migrate() when the database is older than this code, so updates need no manual step. */
+function db_ensure_schema(): void
+{
+    if ((int) (meta_get('schema_version') ?? 0) < DB_SCHEMA_VERSION) {
+        db_migrate();
+    }
+}
+
+function db_has_column(string $table, string $column): bool
+{
+    if (is_mysql()) {
+        return (bool) db_one('SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?', [$table, $column]);
+    }
+    foreach (db_all("PRAGMA table_info($table)") as $col) {
+        if ($col['name'] === $column) {
+            return true;
+        }
+    }
+    return false;
 }

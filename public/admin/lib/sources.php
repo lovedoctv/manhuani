@@ -42,7 +42,7 @@ function source_save(?int $id, array $in): array
         return [null, 'Please enter a valid web address starting with http:// or https://'];
     }
     if ($name === '') {
-        $name = parse_url($url, PHP_URL_HOST) ?: $url;
+        $name = is_mangadex_url($url) ? 'MangaDex' : (parse_url($url, PHP_URL_HOST) ?: $url);
     }
     $dupe = db_one('SELECT id FROM sources WHERE url = ? AND id <> ?', [$url, $id ?? 0]);
     if ($dupe) {
@@ -84,7 +84,7 @@ function source_set_enabled(int $id, bool $on): ?string
         if (!$s['feed_url']) {
             return 'Run "Test" first. A source can only be enabled once an authorized feed has been found.';
         }
-        if ($s['robots_status'] !== 'allowed') {
+        if ($s['robots_status'] !== 'allowed' && !($s['robots_status'] === 'api' && $s['method'] === 'mangadex')) {
             return 'This source\'s robots.txt does not allow automated access, so it can\'t be enabled.';
         }
         if (!$s['permission_confirmed']) {
@@ -119,6 +119,9 @@ function source_test(int $id): array
     $s = source_get($id);
     if (!$s) {
         return ['ok' => false, 'lines' => [['error', 'Source not found.']]];
+    }
+    if (is_mangadex_url($s['url'])) {
+        return mangadex_test($s);
     }
     $lines = [];
     $add = function (string $level, string $text) use (&$lines) { $lines[] = [$level, $text]; };

@@ -1,1 +1,0 @@
-import{t as e}from"./site.DpgvISOz.js";import{n as t,t as n}from"./cards.C9sm-Usx.js";var r=e(),i=document.getElementById(`bookmark-results`),a=document.getElementById(`bookmark-empty`);if(!r.length)a.hidden=!1;else{let e=await t(),o=r.map(t=>e.find(e=>e.slug===t)).filter(e=>!!e);i.innerHTML=o.map(n).join(``),a.hidden=o.length>0}

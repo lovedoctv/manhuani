@@ -24,7 +24,7 @@ The dashboard is plain PHP in `public/admin/`, so the build copies it to `deploy
 ~/aduna.fit/manhuani/        The website folder
   admin/index.php            Dashboard (login, sources, updates, logs)
   admin/cli.php              Command line: setup, cron "run", test, publish, password
-  admin/lib/*.php            Crawler code (blocked from the web)
+  admin/lib/*.php            Crawler code (blocked from the web); lib/apis.php holds MangaDex and AniList
   data/live/latest.json      Written by the crawler for the home page
   data/live/series/<slug>.json   Written by the crawler for series pages
 ```
@@ -36,6 +36,7 @@ The dashboard is plain PHP in `public/admin/`, so the build copies it to `deploy
    - `robots.txt` is read (cached for 12 hours) and must allow the feed URL for `ManhuaniBot`, or `*`. A `Crawl-delay` is respected.
    - The feed is fetched with a conditional GET (ETag and Last-Modified), so unchanged feeds cost almost nothing.
    - CAPTCHA, Cloudflare challenge, login and paywall responses switch the source off.
+   - A MangaDex source skips robots.txt (it is an official API, governed by its own terms) and makes one request to `/manga/{id}/feed`, newest chapters first, with scanlation group names. Its updates store the group in `updates.credit` and link to `https://mangadex.org/chapter/{id}`. See `lib/apis.php`.
 3. Each feed item title is parsed into series, chapter number and optional chapter title (`lib/extract.php`). Items without a chapter number or an http(s) link are skipped.
 4. Updates are inserted with a unique `dedupe_key` of series slug plus chapter number, so duplicates are ignored.
 5. `lib/publish.php` writes `data/live/*.json` atomically.
@@ -51,6 +52,10 @@ If the files don't exist, for example before the crawler is installed, nothing c
 
 Series are matched to site pages by slug. A feed title of "Dungeon Chef" becomes `dungeon-chef`, which matches `/manga/dungeon-chef/`. The list of site series comes from `data/search-index.json`.
 
+### Database upgrades
+
+`meta.schema_version` records the database version. When the code is newer (`DB_SCHEMA_VERSION` in `lib/db.php`), the dashboard and the CLI run `db_migrate()` once, which adds missing tables and columns. Version 2 added `updates.credit`.
+
 ### Security
 
 - The password is stored as a bcrypt hash. The session cookie is HttpOnly, SameSite=Strict, and Secure on https. Sessions expire after 2 hours idle.
@@ -62,4 +67,5 @@ Series are matched to site pages by slug. A feed title of "Dungeon Chef" becomes
 ### Ideas for later
 
 - Export a crawled series as a JSON file for `src/content/series/`, giving it a full static page with SEO. This could be automated through the GitHub API.
-- Use an official API for a source whose terms allow it. This needs a small adapter per API.
+- Other official APIs can be added like MangaDex in `lib/apis.php`: a test function, a crawl function, and a `method` name.
+- The AniList lookup (dashboard → Series info) produces series files by hand. It could commit them through the GitHub API.

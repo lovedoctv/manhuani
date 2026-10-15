@@ -11,8 +11,8 @@ It runs on your existing Namecheap hosting with PHP. You don't need Node.js or a
 **It only uses authorized methods:**
 
 - It reads `robots.txt` first and obeys it, including `Crawl-delay`. It identifies itself as `ManhuaniBot`.
-- It only reads official feeds: RSS, Atom or JSON Feed. It never scrapes ordinary web pages.
-- It reports when a site offers an API, but never uses one automatically. Use an API only if the site's terms allow it.
+- It only reads official feeds (RSS, Atom or JSON Feed) and two official APIs that are published for programs to use: MangaDex and AniList. It never scrapes ordinary web pages.
+- It reports when another site offers an API, but never uses one automatically.
 - You have to tick a box confirming you're allowed to use the source before it can be switched on.
 
 **It never:**
@@ -125,6 +125,7 @@ Click **Test** on the source. You'll see a list of checks:
 | ✓ robots.txt allows this address | Automated access is allowed. |
 | ✕ robots.txt blocks this address | The site doesn't allow bots there. The source can't be used. |
 | ✕ This source shows a CAPTCHA or anti-bot check | It won't be bypassed. The source can't be used. |
+| ✓ MangaDex API ready | A MangaDex title with numbered chapters was found. |
 | ✓ Authorized feed found | An official RSS, Atom or JSON feed with chapter releases was found. When a site has several feeds, the one with the most chapter releases is used. |
 | ✕ none look like chapter releases | The feed only has blog posts or news. Paste the address of the site's chapter or series feed instead, if it has one. |
 | ✕ No authorized feed was found | The site has no feed, so there's no permitted way to follow it automatically. |
@@ -139,6 +140,37 @@ The test also shows a few examples of the chapter releases it understood.
 - **Disable** stops checking it but keeps its updates.
 - **Edit** changes the name, address, interval or notes. Changing the address switches the source off until you test it again.
 - **Remove** deletes the source. Tick "Also delete its updates" to remove its chapters from the site too.
+
+### Follow a series on MangaDex
+
+MangaDex has an [official API](https://api.mangadex.org/docs/) that programs are allowed to use. Each MangaDex source follows one series.
+
+1. Open the series on mangadex.org and copy the address from your browser. It looks like `https://mangadex.org/title/a1c7c817-…/solo-leveling`.
+2. In **Sources**, click **+ Add source** and paste it. The name can stay empty: it becomes "MangaDex".
+3. Tick the permission box (read the rules below first), save, then click **Test** and **Enable**.
+
+The test checks the title exists and has numbered chapters in English. Chapters without a number, such as oneshots, are skipped.
+
+**MangaDex's rules, which you accept by ticking the box:**
+
+- **Your site must not run ads or paid services** while it uses their API. Donations are fine. If you add ads to aduna.fit/manhuani later, remove your MangaDex sources first.
+- **Credit MangaDex and the scanlation group.** This happens automatically: cards show "via MangaDex · Group name", and every chapter links to its page on mangadex.org.
+- **Remove updates if a group asks.** Use **Hide** or **Delete** on the Updates page.
+
+**Rate limits:** MangaDex allows about 5 requests a second. Each check makes one request, at least 3 seconds after the last one, so the dashboard stays far below that. If MangaDex answers "slow down" (HTTP 429), the source waits at least an hour, or longer if MangaDex says so, up to a day.
+
+To follow another language, add `'mangadex_language' => 'fr',` (or another language code) to `config.php`.
+
+### Look up series info on AniList
+
+**Series info** in the menu searches [AniList](https://anilist.co)'s official API for a series' title, other titles, type (manhua, manhwa or manga), genres, status, year, author, artist, rating and synopsis. It shows the result as a ready-made series file for your site:
+
+1. Search for the series and find the right result.
+2. On GitHub, open `src/content/series`, click **Add file → Create new file**, and name it as shown (for example `solo-leveling.json`).
+3. Paste the text. Add chapters if you have them, and rewrite the synopsis in your own words if it was quoted from a publisher (it often says "Source: …").
+4. Commit, then deploy as usual. The series page shows "Source: AniList" with a link.
+
+**AniList's rules:** it is free for non-commercial sites (or ones earning under $150 a month), and it must not be used to store or mass-collect its data. So searches only happen when you click **Search**, nothing is saved, and covers are never copied. AniList allows 90 requests a minute; if it says "slow down", the page asks you to wait.
 
 ### Updates and logs
 
@@ -167,7 +199,7 @@ Run these in cPanel Terminal. Replace `php` with your full PHP path if `php -v` 
 | `php ~/aduna.fit/manhuani/admin/cli.php test 3` | Tests source number 3 |
 | `php ~/aduna.fit/manhuani/admin/cli.php publish` | Rewrites the website's update files |
 | `php ~/aduna.fit/manhuani/admin/cli.php password` | Changes the dashboard password |
-| `php ~/aduna.fit/manhuani/admin/cli.php setup` | First install. Run again after an update to upgrade the database. |
+| `php ~/aduna.fit/manhuani/admin/cli.php setup` | First install. Updates upgrade the database by themselves when you next open the dashboard. |
 
 ## Settings
 
@@ -183,6 +215,7 @@ Settings live in `~/manhuani_private/config.php`. You don't need to change any o
 | `published_updates` | 60 | How many recent updates the website receives |
 | `disable_after_failures` | 10 | Errors in a row before a source is switched off |
 | `log_retention_days` | 30 | How long logs are kept |
+| `mangadex_language` | en | Which translation to follow on MangaDex |
 
 Never upload `config.php` or the database to GitHub, and never move the `manhuani_private` folder inside `aduna.fit`.
 
@@ -207,6 +240,8 @@ SQLite works well for this amount of data. If you prefer MySQL:
 | A test says robots.txt blocks it, or it shows a CAPTCHA | That site doesn't allow automated access. Contact the site owner, or follow it by hand. |
 | "No authorized feed was found" | Look for an RSS icon or a "Feed" link on the site and paste that address instead. If there's none, the site can't be followed automatically. |
 | Updates don't show on the site | Click **Refresh website now** on the Updates page, then hard-refresh the site (Ctrl+F5). |
+| A MangaDex test says "no numbered chapters" | MangaDex has no chapters in that language for the title. Some titles only link to official publishers. |
+| "MangaDex asked us to slow down" | Nothing to do. The source waits and tries again later. |
 | A source keeps failing | Open **Logs** to see why. After 10 errors in a row it switches itself off. Fix it, test it, then enable it again. |
 
 Check that the private parts are blocked: https://aduna.fit/manhuani/admin/cli.php should show **403 Forbidden**.
