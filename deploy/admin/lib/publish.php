@@ -7,8 +7,8 @@ defined('MANHUANI') || exit;
  *   data/live/series/<slug>.json     extra chapters for series pages on your site
  *   data/live/titles.json, title/*   titles found by the connectors (see publish_titles)
  *   data/live/library.json           your own titles (dashboard > Library) for the home page grid
- *   data/pages/<id>/*                chapter pages you uploaded, for sources with hosting permission (lib/pages.php)
- * Your own titles' covers and pages are in data/media/ (lib/library.php).
+ * Images you upload (covers, your own pages, and pages of crawled chapters whose source gave you
+ * hosting permission) are in data/media/ (lib/library.php).
  * Apart from those uploads: metadata and links only, never images or content from other sites.
  */
 function publish_updates(): int

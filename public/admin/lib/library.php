@@ -2,7 +2,8 @@
 defined('MANHUANI') || exit;
 
 /*
- * Your own titles, chapters and page images (the dashboard's "Library").
+ * Your own titles, chapters and page images (the dashboard's "Library"), and the pages
+ * you upload for crawled chapters whose source gave you hosting permission.
  *
  * Images are checked (a real JPG, PNG, WEBP or GIF under the size limit), given a
  * random name and stored in the website's data/media/ folder. Only published
@@ -424,4 +425,96 @@ function library_latest_updates(int $limit): array
         'source' => null,
         'credit' => null,
     ], $rows);
+}
+
+// ---------- Pages for crawled chapters (sources with hosting permission) ----------
+// Stored like your own pages: checked, given a random name and saved in data/media/.
+// updates.pages lists the files in reading order. They are listed on the website only
+// while the chapter's source has hosting permission and the chapter and title are visible.
+
+/** File names of a crawled chapter's uploaded pages, in reading order. */
+function update_pages(array $u): array
+{
+    $list = json_decode((string) ($u['pages'] ?? ''), true);
+    return is_array($list) ? array_values(array_filter($list, 'media_name_ok')) : [];
+}
+
+/** A crawled chapter with its source's name and hosting permission, or null. */
+function chapter_for_pages(int $updateId): ?array
+{
+    return db_one('SELECT u.*, s.name AS source_name, s.hosting_allowed, s.hosting_note FROM updates u LEFT JOIN sources s ON s.id = u.source_id WHERE u.id = ?', [$updateId]);
+}
+
+/**
+ * Adds uploaded images after the chapter's existing pages, ordered by their file names.
+ * @return array{0:int,1:string[]} [pages added, problems]
+ */
+function pages_upload(array $u, array $field): array
+{
+    if (empty($u['hosting_allowed'])) {
+        return [0, ['This chapter\'s source has no hosting permission. Edit the source first.']];
+    }
+    $files = uploaded_files($field);
+    if (!$files) {
+        return [0, ['Choose one or more images first.']];
+    }
+    $names = update_pages($u);
+    $max = (int) config('max_pages_per_chapter');
+    $added = 0;
+    $problems = [];
+    foreach ($files as $f) {
+        if (count($names) >= $max) {
+            $problems[] = "A chapter can have at most $max pages, so the rest were skipped.";
+            break;
+        }
+        [$img, $err] = store_image($f, (int) config('max_page_bytes'));
+        if ($err) {
+            $problems[] = $err;
+            continue;
+        }
+        $names[] = $img['file'];
+        $added++;
+    }
+    db_run('UPDATE updates SET pages = ? WHERE id = ?', [$names ? json_encode($names) : null, (int) $u['id']]);
+    if ($added) {
+        log_info("Added $added page(s) to {$u['series_title']} chapter " . format_chapter((float) $u['chapter_number']), (int) $u['source_id']);
+    }
+    return [$added, $problems];
+}
+
+/** Deletes a crawled chapter's uploaded pages. */
+function pages_clear(int $updateId): void
+{
+    $u = db_one('SELECT pages FROM updates WHERE id = ?', [$updateId]);
+    foreach ($u ? update_pages($u) : [] as $file) {
+        delete_media($file);
+    }
+    db_run('UPDATE updates SET pages = NULL WHERE id = ?', [$updateId]);
+}
+
+/**
+ * The pages the website may show: chapters whose source has hosting permission and
+ * that are not hidden. @return array<int,string[]> update id => page addresses
+ */
+function pages_publish(): array
+{
+    $rows = db_all('SELECT u.id, u.pages FROM updates u JOIN sources s ON s.id = u.source_id LEFT JOIN titles t ON t.id = u.title_id
+        WHERE u.pages IS NOT NULL AND u.hidden = 0 AND s.hosting_allowed = 1 AND (t.id IS NULL OR t.hidden = 0)');
+    $out = [];
+    foreach ($rows as $r) {
+        if ($files = update_pages($r)) {
+            $out[(int) $r['id']] = array_map('media_url', $files);
+        }
+    }
+    return $out;
+}
+
+/** The hosted pages found by the last pages_publish() run. */
+function hosted_pages(?array $set = null): array
+{
+    static $map = [];
+    if ($set !== null) {
+        $map = $set;
+    }
+    return $map;
 }
