@@ -7,7 +7,7 @@ defined('MANHUANI') || exit;
  *   1. the same id on the same site (title_sources),
  *   2. a cross-site id (MangaDex lists a title's AniList and MangaUpdates ids),
  *   3. the same normalised name or alternative name (title_keys).
- * Chapters go through title_add_chapter(), keyed by title and chapter number, so
+ * Chapters go through title_add_chapter(), keyed by title, chapter number and group, so
  * a chapter reported by several sources is stored once.
  */
 
@@ -211,8 +211,9 @@ function title_clean_links(array $links): array
 }
 
 /**
- * Stores one chapter of a title. If the chapter is already known only from a source
- * without a reading link (MangaUpdates), a readable link replaces it.
+ * Stores one chapter of a title. Each scanlation group's release of a chapter is kept
+ * (like "Ch. 24 · Group A" and "Ch. 24 · Group B"). If a release is already known only
+ * from a source without a reading link (MangaUpdates), a readable link replaces it.
  * @return bool true when it is new
  */
 function title_add_chapter(int $titleId, string $connector, float $number, ?string $label, ?string $date, string $url, ?string $credit, bool $readable, int $sourceId = 0): bool
@@ -221,7 +222,22 @@ function title_add_chapter(int $titleId, string $connector, float $number, ?stri
     if (!$t || !preg_match('#^https?://#i', $url)) {
         return false;
     }
-    $dedupe = sha1($t['slug'] . '|' . format_chapter($number));
+    $group = mb_strtolower(trim((string) $credit));
+    // The same group's release, stored before or after groups were told apart.
+    $same = db_one('SELECT id, readable FROM updates WHERE title_id = ? AND chapter_number = ? AND LOWER(COALESCE(credit, \'\')) = ? ORDER BY readable DESC LIMIT 1', [$titleId, $number, $group]);
+    if ($same === null && $group !== '') {
+        // A release stored without a group name (older feeds) stands for any group.
+        $same = db_one('SELECT id, readable FROM updates WHERE title_id = ? AND chapter_number = ? AND (credit IS NULL OR credit = \'\') LIMIT 1', [$titleId, $number]);
+    }
+    if ($same !== null) {
+        if ($readable && !(int) $same['readable']) {
+            db_run('UPDATE updates SET source_url = ?, credit = ?, connector = ?, source_id = ?, readable = 1, chapter_label = COALESCE(chapter_label, ?), release_date = COALESCE(?, release_date) WHERE id = ?',
+                [str_limit($url, 500), $credit, $connector === '' ? null : $connector, $sourceId, $label, $date, $same['id']]);
+            meta_set('needs_publish', '1'); // a chapter got a reading link
+        }
+        return false;
+    }
+    $dedupe = sha1($t['slug'] . '|' . format_chapter($number) . ($group !== '' ? '|' . $group : ''));
     $inserted = db_insert_ignore('updates', [
         'source_id' => $sourceId,
         'series_title' => $t['title'],
@@ -241,13 +257,6 @@ function title_add_chapter(int $titleId, string $connector, float $number, ?stri
         // A chapter stored before its title existed joins the title's page.
         if (db_run('UPDATE updates SET title_id = ? WHERE dedupe_key = ? AND title_id IS NULL', [$titleId, $dedupe]) > 0) {
             meta_set('needs_publish', '1');
-        }
-    }
-    if (!$inserted && $readable) {
-        $upgraded = db_run('UPDATE updates SET source_url = ?, credit = ?, connector = ?, source_id = ?, readable = 1, chapter_label = COALESCE(chapter_label, ?), release_date = COALESCE(?, release_date) WHERE dedupe_key = ? AND readable = 0',
-            [str_limit($url, 500), $credit, $connector === '' ? null : $connector, $sourceId, $label, $date, $dedupe]);
-        if ($upgraded > 0) {
-            meta_set('needs_publish', '1'); // a chapter got a reading link
         }
     }
     if ($inserted && ($t['latest_chapter'] === null || $number >= (float) $t['latest_chapter'])) {

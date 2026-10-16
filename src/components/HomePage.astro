@@ -12,7 +12,7 @@ const { page } = Astro.props;
 const list = await allSeries();
 const total = Math.max(1, Math.ceil(list.length / site.perPage));
 const items = list.slice((page - 1) * site.perPage, page * site.perPage);
-const popular = page === 1 ? await popularSeries(6) : [];
+const popular = page === 1 ? await popularSeries(12) : [];
 const pageUrl = (n: number) => url(n === 1 ? '/' : `/page/${n}/`);
 
 const jsonLd = {
@@ -41,10 +41,23 @@ const jsonLd = {
     </section>
   )}
 
+  {page === 1 && site.liveUpdates && (
+    <section class="container block carousel" data-live-popular data-limit="12" data-carousel hidden>
+      <div class="section-head">
+        <h2>Most Recent Popular</h2>
+        <div class="car-nav"><button type="button" class="car-btn" data-dir="-1" aria-label="Previous">‹</button><button type="button" class="car-btn" data-dir="1" aria-label="Next">›</button></div>
+      </div>
+      <div class="car-track"></div>
+    </section>
+  )}
+
   {page === 1 && (
-    <section class="container block">
-      <div class="section-head"><h2>Popular Series</h2><a href={url('/manga/')}>View all</a></div>
-      <SeriesGrid items={popular} variant="popular" eagerCount={6} />
+    <section class="container block carousel" data-static-popular data-carousel>
+      <div class="section-head">
+        <h2>Popular Series</h2>
+        <div class="car-nav"><a href={url('/manga/')}>View all</a><button type="button" class="car-btn" data-dir="-1" aria-label="Previous">‹</button><button type="button" class="car-btn" data-dir="1" aria-label="Next">›</button></div>
+      </div>
+      <SeriesGrid items={popular} variant="popular" eagerCount={6} ranked track />
     </section>
   )}
 
@@ -75,9 +88,12 @@ const jsonLd = {
   </div>
 
   {page === 1 && site.liveUpdates && (
-    <section class="container block" data-live-new-titles data-limit="12" hidden>
-      <div class="section-head"><h2>New Titles</h2><a href={url('/new-titles/')}>View all</a></div>
-      <div class="series-grid"></div>
+    <section class="container block carousel" data-live-new-titles data-limit="18" data-carousel hidden>
+      <div class="section-head">
+        <h2>New Comics</h2>
+        <div class="car-nav"><a href={url('/new-titles/')}>View all</a><button type="button" class="car-btn" data-dir="-1" aria-label="Previous">‹</button><button type="button" class="car-btn" data-dir="1" aria-label="Next">›</button></div>
+      </div>
+      <div class="car-track"></div>
     </section>
   )}
 

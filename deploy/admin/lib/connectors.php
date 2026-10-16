@@ -49,7 +49,7 @@ function connector_defs(): array
         ],
         'anilist' => [
             'label' => 'AniList',
-            'does' => 'Fills in genres, status, year, rating and official reading sites for titles, and adds a few trending manhwa and manhua once a day.',
+            'does' => 'Fills in genres, status, year, rating, popularity, cover and official reading sites for titles, and adds a few trending manhwa and manhua once a day. Covers are shown from AniList\'s servers, never copied.',
             'terms' => 'Free for non-commercial sites (or under $150 a month). Not to be used to store or mass-collect its data, so only small batches are fetched. 90 requests a minute is the limit.',
             'docs' => 'https://docs.anilist.co/',
             'every' => 120,
@@ -573,8 +573,14 @@ function cx_mangaupdates_test(): array
 
 // ---------------------------------------------------------------- AniList
 
-const ANILIST_FIELDS = 'id siteUrl countryOfOrigin status averageScore genres synonyms isAdult
-  title { romaji english native } startDate { year } externalLinks { site url type language }';
+const ANILIST_FIELDS = 'id siteUrl countryOfOrigin status averageScore popularity genres synonyms isAdult
+  title { romaji english native } startDate { year } externalLinks { site url type language } coverImage { large }';
+
+/** AniList's own cover address (shown from AniList's servers, never copied). */
+function anilist_cover_ok(?string $url): bool
+{
+    return is_string($url) && preg_match('#^https://s4\.anilist\.co/file/anilistcdn/media/manga/cover/(large|medium)/[A-Za-z0-9_.-]{1,120}$#', $url) === 1;
+}
 
 const ANILIST_READ_SITES = ['webtoon', 'webtoons', 'line webtoon', 'tapas', 'tappytoon', 'lezhin', 'manta', 'pocket comics', 'bilibili comics', 'bilibili manga',
     'comikey', 'inkr', 'kakaopage', 'kakao webtoon', 'naver webtoon', 'naver series', 'manga plus', 'azuki', 'k manga', 'kodansha us', 'yen press', 'tencent comics', 'kuaikan', 'webnovel', 'mangamo'];
@@ -604,7 +610,12 @@ function cx_anilist_title(array $m): ?array
         'status' => ['FINISHED' => 'completed', 'RELEASING' => 'ongoing', 'HIATUS' => 'hiatus', 'CANCELLED' => 'cancelled'][$m['status'] ?? ''] ?? null,
         'year' => $m['startDate']['year'] ?? null, 'genres' => array_map('slugify', $m['genres'] ?? []),
         'rating' => is_numeric($m['averageScore'] ?? null) ? round($m['averageScore'] / 20, 1) : null,
-        'links' => $links, 'data' => [],
+        'links' => $links,
+        // The cover and popularity, for cards and the Popular list on the website.
+        'data' => array_filter([
+            'cover' => anilist_cover_ok($m['coverImage']['large'] ?? null) ? $m['coverImage']['large'] : null,
+            'popularity' => is_int($m['popularity'] ?? null) ? $m['popularity'] : null,
+        ], fn ($v) => $v !== null),
     ];
 }
 
@@ -630,6 +641,26 @@ function cx_anilist_query(string $query, array $vars, int $cacheSeconds = 7 * 86
 function cx_anilist_run(array &$state): array
 {
     $out = ['new' => 0, 'titles' => 0, 'linked' => 0];
+    // 0. Titles matched before covers were saved: refresh up to 25 in one request.
+    $old = [];
+    foreach (db_all("SELECT external_id FROM title_sources WHERE connector = 'anilist' AND (data IS NULL OR data NOT LIKE '%\"popularity\"%') LIMIT 1000") as $row) {
+        if (ctype_digit($row['external_id']) && !isset($state['tried']['c' . $row['external_id']])) {
+            $old[] = (int) $row['external_id'];
+        }
+        if (count($old) >= 25) {
+            break;
+        }
+    }
+    if ($old) {
+        foreach (cx_anilist_query('query ($ids: [Int]) { Page(perPage: 25) { media(id_in: $ids, type: MANGA) { ' . ANILIST_FIELDS . ' } } }', ['ids' => $old]) as $m) {
+            if ($info = cx_anilist_title($m)) {
+                title_save($info);
+            }
+        }
+        foreach ($old as $id) {
+            $state['tried']['c' . $id] = time();
+        }
+    }
     // 1. Titles whose AniList id is already known (MangaDex lists it): one batch request.
     $ids = [];
     foreach (db_all("SELECT k, title_id FROM title_keys WHERE k LIKE 'id:anilist:%' LIMIT 500") as $row) {

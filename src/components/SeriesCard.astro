@@ -2,26 +2,26 @@
 import { type Series, seriesUrl, chapterUrl, coverUrl, sortedChapters, formatDate } from '../lib/data';
 import Rating from './Rating.astro';
 
-interface Props { series: Series; variant?: 'latest' | 'popular'; eager?: boolean }
-const { series, variant = 'latest', eager = false } = Astro.props;
+interface Props { series: Series; variant?: 'latest' | 'popular'; eager?: boolean; rank?: number }
+const { series, variant = 'latest', eager = false, rank = 0 } = Astro.props;
 const d = series.data;
-const latest = sortedChapters(series).slice(0, 2);
+const latest = sortedChapters(series).slice(0, variant === 'popular' ? 1 : 2);
 ---
 <article class="card" data-series={series.id}>
-  <a href={seriesUrl(series.id)} class="card-cover">
-    <img src={coverUrl(series)} alt={`${d.title} cover`} width="175" height="238" loading={eager ? 'eager' : 'lazy'} decoding="async" />
-    {variant === 'latest' && <span class:list={['type-badge', d.type]}>{d.type}</span>}
-  </a>
-  <div class="card-body">
-    <h3 class="card-title"><a href={seriesUrl(series.id)}>{d.title}</a></h3>
-    {variant === 'latest' && d.rating !== undefined && <Rating value={d.rating} />}
-    <ul class="chapter-pills">
-      {latest.map((c) => (
-        <li>
-          <a href={chapterUrl(series.id, c.number)}>Chapter {c.number}</a>
-          <time class="ago" datetime={c.date.toISOString()}>{formatDate(c.date)}</time>
-        </li>
-      ))}
-    </ul>
+  <div class="card-cover-wrap">
+    <a href={seriesUrl(series.id)} class="card-cover">
+      <img src={coverUrl(series)} alt={`${d.title} cover`} width="175" height="238" loading={eager ? 'eager' : 'lazy'} decoding="async" />
+      {rank > 0 && <span class="rank-badge">#{rank}</span>}
+      {(variant === 'latest' || rank > 0) && <span class:list={['type-badge', d.type, rank > 0 && 'bottom']}>{d.type}</span>}
+    </a>
+    <button type="button" class="follow-btn" data-follow={series.id} aria-pressed="false" aria-label="Add to bookmarks">+</button>
   </div>
+  {latest.map((c) => (
+    <div class="card-meta">
+      <a href={chapterUrl(series.id, c.number)}>Ch.{c.number}</a>
+      <time class="ago" datetime={c.date.toISOString()}>{formatDate(c.date)}</time>
+    </div>
+  ))}
+  <h3 class="card-title"><a href={seriesUrl(series.id)}>{d.title}</a></h3>
+  {variant === 'latest' && d.rating !== undefined && <Rating value={d.rating} />}
 </article>

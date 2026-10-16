@@ -1,4 +1,8 @@
 import { applyLiveUpdates } from './live';
+import { getBookmarks, isFollowed, toggleFollow } from './store';
+import { relativeTimes } from './time';
+
+export { getBookmarks, relativeTimes };
 
 // Mobile menu
 const menuBtn = document.querySelector<HTMLButtonElement>('.menu-toggle');
@@ -8,28 +12,15 @@ menuBtn?.addEventListener('click', () => {
   menuBtn.setAttribute('aria-expanded', String(open));
 });
 
-// Light / dark theme
+// Light / dark theme (dark unless the reader picked light)
 document.querySelector('.theme-toggle')?.addEventListener('click', () => {
   const root = document.documentElement;
-  const current = root.dataset.theme ?? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  const current = root.dataset.theme ?? 'dark';
   const next = current === 'dark' ? 'light' : 'dark';
   root.dataset.theme = next;
   try { localStorage.setItem('theme', next); } catch {}
 });
 
-// "3 hours ago" style dates for recent chapters
-export function relativeTimes(scope: ParentNode = document) {
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-  const now = Date.now();
-  scope.querySelectorAll<HTMLTimeElement>('time.ago').forEach((el) => {
-    const t = Date.parse(el.dateTime);
-    if (Number.isNaN(t)) return;
-    const mins = Math.round((t - now) / 60000);
-    if (mins > -60) el.textContent = rtf.format(Math.min(mins, 0), 'minute');
-    else if (mins > -60 * 24) el.textContent = rtf.format(Math.round(mins / 60), 'hour');
-    else if (mins > -60 * 24 * 7) el.textContent = rtf.format(Math.round(mins / 1440), 'day');
-  });
-}
 relativeTimes();
 
 // Chapter list filter on series pages
@@ -46,27 +37,40 @@ document.querySelectorAll<HTMLSelectElement>('.chapter-jump').forEach((sel) =>
   sel.addEventListener('change', () => (location.href = sel.value)),
 );
 
-// Bookmarks (stored in this browser only)
-const KEY = 'bookmarks';
-export const getBookmarks = (): string[] => {
-  try { return JSON.parse(localStorage.getItem(KEY) ?? '[]'); } catch { return []; }
-};
-const setBookmarks = (list: string[]) => {
-  try { localStorage.setItem(KEY, JSON.stringify(list)); } catch {}
-};
+// Bookmarks (stored in this browser only, no account needed)
 document.querySelectorAll<HTMLButtonElement>('.bookmark-btn').forEach((btn) => {
   const id = btn.dataset.bookmark!;
   const render = () => {
-    const on = getBookmarks().includes(id);
+    const on = isFollowed(id);
     btn.textContent = on ? '★ Bookmarked' : '☆ Bookmark';
     btn.setAttribute('aria-pressed', String(on));
   };
   render();
   btn.addEventListener('click', () => {
-    const list = getBookmarks();
-    setBookmarks(list.includes(id) ? list.filter((x) => x !== id) : [id, ...list]);
+    toggleFollow(id);
     render();
   });
 });
 
-applyLiveUpdates().then(() => relativeTimes());
+// The "+" on cards, also on cards added later by the live updates.
+export function renderFollowButtons(scope: ParentNode = document) {
+  scope.querySelectorAll<HTMLButtonElement>('.follow-btn').forEach((btn) => {
+    const on = isFollowed(btn.dataset.follow!);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.setAttribute('aria-label', on ? 'Remove from bookmarks' : 'Add to bookmarks');
+    btn.textContent = on ? '✓' : '+';
+  });
+}
+document.addEventListener('click', (e) => {
+  const btn = (e.target as Element).closest<HTMLButtonElement>('.follow-btn');
+  if (!btn) return;
+  e.preventDefault();
+  toggleFollow(btn.dataset.follow!);
+  document.querySelectorAll<HTMLButtonElement>(`.follow-btn[data-follow="${CSS.escape(btn.dataset.follow!)}"]`).forEach((b) => renderFollowButtons(b.parentElement!));
+});
+renderFollowButtons();
+
+applyLiveUpdates().then(() => {
+  relativeTimes();
+  renderFollowButtons();
+});

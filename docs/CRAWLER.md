@@ -149,11 +149,13 @@ The test also shows a few examples of the chapter releases it understood.
 | --- | --- | --- | --- |
 | **MangaDex** | New titles and new English chapters of Korean and Chinese series | Yes: each chapter opens on mangadex.org, plus the official English publisher when MangaDex lists one | 60 min |
 | **MangaUpdates** | Chapter releases announced by scanlation groups | No: these chapters open the series page on MangaUpdates. When MangaDex has the same chapter, its reading link replaces it. | 30 min |
-| **AniList** | Genres, status, year, rating and official reading sites (Webtoon, Tapas, Bilibili and others) for titles found by the others, plus 15 trending manhwa and 15 trending manhua a day | Official sites only | 120 min |
+| **AniList** | Genres, status, year, rating, cover, popularity and official reading sites (Webtoon, Tapas, Bilibili and others) for titles found by the others, plus 15 trending manhwa and 15 trending manhua a day | Official sites only | 120 min |
 | **Bangumi** | Matches manhua by their Chinese name and links their bgm.tv page | No | 180 min |
 | **Anime News Network** | Genres, year and the official website from the ANN Encyclopedia | Official website only | 180 min |
 
 Only MangaDex gives chapter pages that can be read. MangaUpdates gives release information. AniList, Bangumi and ANN give series details. No source is used to copy chapter pages or cover images.
+
+Covers come from AniList. The website shows them straight from AniList's servers: they are never downloaded or saved on your server. Titles AniList doesn't know, or whose cover fails to load, get a coloured tile with their initials. MangaDex covers aren't used because MangaDex doesn't allow other sites to show them directly.
 
 ### Turn them on
 
@@ -182,7 +184,7 @@ Each title is stored once, even when several sources find it:
 2. **Cross-site IDs.** MangaDex lists a title's AniList and MangaUpdates IDs.
 3. **Same name.** This includes alternative titles and the names scanlation groups use.
 
-Each chapter is stored once per title and chapter number. If a chapter from MangaUpdates (no reading link) later appears on MangaDex, the MangaDex link replaces it.
+Each chapter is stored once per title, chapter number and scanlation group, so when two groups release the same chapter, the title page lists both. A release that names no group counts as any group's. If a chapter from MangaUpdates (no reading link) later appears on MangaDex, the MangaDex link replaces it.
 
 Feed sources from **Sources** use the same catalogue. A feed chapter for a series a connector already found is filed under that title.
 
@@ -262,6 +264,13 @@ After each run the dashboard writes two kinds of small files into `aduna.fit/man
 - `series/<series>.json` adds NEW chapters to the chapter list of series that already have a page on your site. They're matched by name: "Dungeon Chef" in a feed matches `/manga/dungeon-chef/`.
 
 Deploying the site never overwrites these files.
+
+### What visitors see
+
+- **Home page:** **Most Recent Popular** is a row of the most followed titles (by AniList popularity) that had a chapter in the last 30 days, numbered #1, #2 and so on. **New Comics** is a row of the newest titles. Both scroll sideways with the ‹ › buttons, or by swiping on a phone. Until at least 4 titles have chapters, the built **Popular Series** row shows instead.
+- **Cards** show the cover, the latest chapter with how long ago it came out ("Ch.49 · 1d ago"), and a **+** button that bookmarks the series.
+- **Title pages** list every release with its group, date and a bookmark icon. Visitors can search by chapter number, pick one group in **All groups**, and sort by chapter or date. Chapters they've opened are dimmed, and **Continue** takes them back to the last one.
+- **Bookmarks** (`/manhuani/bookmarks/`) lists bookmarked series and chapters. Nobody signs up: bookmarks and reading history are saved in the visitor's browser, on that device only. They aren't tied to an IP address, because many people share one (mobile networks, offices) and most people's address changes often.
 
 ### Reading chapters on your site
 
