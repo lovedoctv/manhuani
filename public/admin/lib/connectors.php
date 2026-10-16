@@ -52,7 +52,7 @@ function connector_defs(): array
             'does' => 'Fills in genres, status, year, rating, popularity, cover and official reading sites for titles, and adds a few trending manhwa and manhua once a day. Covers are shown from AniList\'s servers, never copied.',
             'terms' => 'Free for non-commercial sites (or under $150 a month). Not to be used to store or mass-collect its data, so only small batches are fetched. 90 requests a minute is the limit.',
             'docs' => 'https://docs.anilist.co/',
-            'every' => 120,
+            'every' => 60,
             'run' => 'cx_anilist_run',
             'test' => 'cx_anilist_test',
         ],
@@ -277,7 +277,7 @@ function titles_needing(string $connector, array &$state, int $limit, ?string $t
 {
     $tried = $state['tried'] ?? [];
     $rows = db_all('SELECT t.* FROM titles t WHERE t.hidden = 0 AND COALESCE(t.origin, \'\') <> \'own\' AND NOT EXISTS (SELECT 1 FROM title_sources s WHERE s.title_id = t.id AND s.connector = ?)'
-        . ($type ? ' AND t.type = ?' : '') . ' ORDER BY t.updated_at DESC LIMIT 200', $type ? [$connector, $type] : [$connector]);
+        . ($type ? ' AND t.type = ?' : '') . ' ORDER BY COALESCE(t.latest_chapter_at, t.updated_at) DESC, t.id DESC LIMIT 200', $type ? [$connector, $type] : [$connector]);
     $out = [];
     foreach ($rows as $r) {
         if (isset($tried[$r['id']]) && $tried[$r['id']] > time() - 30 * 86400) {
@@ -641,23 +641,23 @@ function cx_anilist_query(string $query, array $vars, int $cacheSeconds = 7 * 86
 function cx_anilist_run(array &$state): array
 {
     $out = ['new' => 0, 'titles' => 0, 'linked' => 0];
-    // 0. Titles matched before covers were saved: refresh up to 25 in one request.
+    // 0. Titles matched before covers were saved: refresh up to 75 per run, 25 per request.
     $old = [];
     foreach (db_all("SELECT external_id FROM title_sources WHERE connector = 'anilist' AND (data IS NULL OR data NOT LIKE '%\"popularity\"%') LIMIT 1000") as $row) {
         if (ctype_digit($row['external_id']) && !isset($state['tried']['c' . $row['external_id']])) {
             $old[] = (int) $row['external_id'];
         }
-        if (count($old) >= 25) {
+        if (count($old) >= 75) {
             break;
         }
     }
-    if ($old) {
-        foreach (cx_anilist_query('query ($ids: [Int]) { Page(perPage: 25) { media(id_in: $ids, type: MANGA) { ' . ANILIST_FIELDS . ' } } }', ['ids' => $old]) as $m) {
+    foreach (array_chunk($old, 25) as $chunk) {
+        foreach (cx_anilist_query('query ($ids: [Int]) { Page(perPage: 25) { media(id_in: $ids, type: MANGA) { ' . ANILIST_FIELDS . ' } } }', ['ids' => $chunk]) as $m) {
             if ($info = cx_anilist_title($m)) {
                 title_save($info);
             }
         }
-        foreach ($old as $id) {
+        foreach ($chunk as $id) {
             $state['tried']['c' . $id] = time();
         }
     }
@@ -683,8 +683,11 @@ function cx_anilist_run(array &$state): array
             $state['tried']['a' . $id] = time();
         }
     }
-    // 2. A few titles without an AniList id: search by name, keep exact name matches only.
-    foreach (titles_needing('anilist', $state, (int) config('enrich_per_run')) as $t) {
+    // 2. Titles without an AniList id, newest chapters first: search by name, keep exact name
+    //    matches only. Uses what is left of this run's requests (two stay for the trending lists).
+    $trendingDue = ($state['trending_day'] ?? '') !== gmdate('Y-m-d');
+    $left = (int) config('connector_max_requests') - Http::requestCount() - ($trendingDue ? 2 : 0) - 1; // one spare for a retry
+    foreach (titles_needing('anilist', $state, max(0, min($left, max((int) config('enrich_per_run'), 6)))) as $t) {
         mark_tried($state, (int) $t['id']);
         foreach (cx_anilist_query('query ($q: String) { Page(perPage: 5) { media(search: $q, type: MANGA) { ' . ANILIST_FIELDS . ' } } }', ['q' => $t['title']]) as $m) {
             $info = cx_anilist_title($m);
@@ -696,7 +699,7 @@ function cx_anilist_run(array &$state): array
         }
     }
     // 3. Once a day: trending manhwa and manhua.
-    if (($state['trending_day'] ?? '') !== gmdate('Y-m-d')) {
+    if ($trendingDue) {
         foreach (['KR' => 'manhwa', 'CN' => 'manhua'] as $country => $type) {
             if (!wanted_type($type)) {
                 continue;

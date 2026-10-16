@@ -7,7 +7,7 @@ if (!defined('MANHUANI')) {
     exit;
 }
 
-const MANHUANI_VERSION = '1.5.0';
+const MANHUANI_VERSION = '1.5.1';
 
 require __DIR__ . '/util.php';
 require __DIR__ . '/db.php';
