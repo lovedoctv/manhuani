@@ -20,3 +20,9 @@ manhuani_private/
 *.sqlite-journal
 public/data/live/
 public/data/media/
+
+# Files cPanel's "Setup Node.js App" writes into the repo folder on the server.
+# The site doesn't use Node on the server; ignoring them keeps "Deploy HEAD Commit" working.
+/app.js
+/stderr.log
+/tmp/
