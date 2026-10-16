@@ -17,6 +17,7 @@ function publish_updates(): int
     $base = site_dir() . '/data/live';
     $onSite = site_series_index();
     hosted_pages(pages_publish());
+    $art = title_art();
     $limit = (int) config('published_updates');
     $from = 'FROM updates u LEFT JOIN sources s ON s.id = u.source_id LEFT JOIN titles t ON t.id = u.title_id
         WHERE u.hidden = 0 AND (s.id IS NOT NULL OR u.connector IS NOT NULL) AND (t.id IS NULL OR t.hidden = 0)';
@@ -30,7 +31,8 @@ function publish_updates(): int
         'titlePage' => !isset($onSite[$r['series_slug']]) && $r['tid'] !== null,
         'titleSlug' => $r['tslug'],
         'hosted' => isset(hosted_pages()[(int) $r['id']]),
-        'cover' => $onSite[$r['series_slug']]['cover'] ?? null,
+        'cover' => $onSite[$r['series_slug']]['cover'] ?? ($art[(int) $r['tid']]['cover'] ?? null),
+        'id' => (int) $r['id'],
         'chapter' => (float) $r['chapter_number'],
         'title' => $r['chapter_label'],
         'date' => gmdate('c', ts($r['release_date'] ?? $r['created_at'])),
@@ -60,7 +62,7 @@ function publish_updates(): int
     }
     remove_unlisted("$base/series", $written);
 
-    publish_titles($base, $onSite);
+    publish_titles($base, $onSite, $art);
     meta_set('last_publish_at', now());
     meta_set('needs_publish', '0');
     meta_set('published_version', MANHUANI_VERSION);
@@ -72,7 +74,7 @@ function publish_updates(): int
  *   data/live/titles.json          newest titles (the "New titles" section and page)
  *   data/live/title/<slug>.json    one title's details, links and chapters (title/?s=<slug>)
  */
-function publish_titles(string $base, array $onSite): void
+function publish_titles(string $base, array $onSite, array $art = []): void
 {
     $limit = (int) config('titles_published');
     // Your own titles are always listed; the catalogue fills up to the limit.
@@ -98,6 +100,9 @@ function publish_titles(string $base, array $onSite): void
             'latestDate' => $t['latest_chapter_at'] ? gmdate('c', ts($t['latest_chapter_at'])) : null,
             'added' => gmdate('c', ts($t['created_at'])),
             'onSite' => isset($onSite[$t['slug']]),
+            // AniList's cover address and how many AniList users follow the title.
+            'cover' => $art[(int) $t['id']]['cover'] ?? null,
+            'popularity' => $art[(int) $t['id']]['popularity'] ?? null,
             'readable' => (bool) array_filter($links, fn ($l) => $l['kind'] === 'read'),
             'sources' => array_values(array_unique(array_column($credits, 'name'))),
         ];
@@ -132,6 +137,24 @@ function publish_titles(string $base, array $onSite): void
     write_atomic("$base/library.json", json_encode(['generated' => gmdate('c'), 'titles' => $library], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 }
 
+/**
+ * Cover addresses and popularity from AniList, by title id. The covers stay on AniList's
+ * servers; the website only links to them.
+ * @return array<int,array{cover:?string,popularity:?int}>
+ */
+function title_art(): array
+{
+    $out = [];
+    foreach (db_all("SELECT title_id, data FROM title_sources WHERE connector = 'anilist' AND (data LIKE '%\"cover\"%' OR data LIKE '%\"popularity\"%')") as $r) {
+        $d = json_decode((string) $r['data'], true) ?: [];
+        $out[(int) $r['title_id']] = [
+            'cover' => function_exists('anilist_cover_ok') && anilist_cover_ok($d['cover'] ?? null) ? $d['cover'] : null,
+            'popularity' => isset($d['popularity']) ? (int) $d['popularity'] : null,
+        ];
+    }
+    return $out;
+}
+
 /** A connector's name, or for one of your own sources, the source's name. */
 function title_source_label(array $x): string
 {
@@ -152,6 +175,7 @@ function chapter_json(array $c): array
         'readable' => (bool) ($c['readable'] ?? true),
         'source' => update_source_label($c),
         'credit' => $c['credit'],
+        'id' => (int) $c['id'],
         'titleSlug' => $c['tslug'] ?? null,
     ] + (($pages = hosted_pages()[(int) $c['id']] ?? null) ? ['pages' => $pages] : []);
 }

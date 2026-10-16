@@ -1,4 +1,5 @@
 import { loadIndex, cardHtml } from './cards';
+import { relativeTimes } from './time';
 
 const q = new URLSearchParams(location.search).get('q')?.trim() ?? '';
 const input = document.getElementById('search-q') as HTMLInputElement;
@@ -17,6 +18,7 @@ if (q) {
     return words.every((w) => hay.includes(w));
   });
   status.textContent = hits.length ? `${hits.length} result${hits.length === 1 ? '' : 's'} for “${q}”` : `No series found for “${q}”.`;
-  out.innerHTML = hits.map(cardHtml).join('');
+  out.innerHTML = hits.map((s) => cardHtml(s)).join('');
+  relativeTimes(out);
   document.title = `Search: ${q} | ${document.title.split(' | ').pop()}`;
 }

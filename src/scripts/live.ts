@@ -1,3 +1,5 @@
+import { relativeTimes } from './time';
+import { chapterKey, isFollowed, isMarked, lastRead, markRead, readNumbers, toggleFollow, toggleMark } from './store';
 // Live chapter updates from the crawler dashboard (Phase 2), shown without rebuilding the site.
 //
 // The dashboard (admin/) writes JSON files to data/live/ on the server.
@@ -18,15 +20,17 @@
 //   Without them, the chapter page says it isn't hosted here and links to the original source.
 // "own" marks titles you added in the dashboard's Library: their cover and pages are in data/media/,
 //   their chapters have no source and are always read here. Drafts are never in these files.
+// "cover" on catalogue titles is AniList's cover address: the image is shown from AniList's servers.
+// "id" tells apart several groups' releases of the same chapter: chapter/?s=<slug>&c=<number>&g=<id>.
 
 interface LiveChapter {
   number: number; title?: string | null; date: string; sourceUrl?: string; source?: string; credit?: string | null; readable?: boolean;
-  titleSlug?: string | null; pages?: string[]; sizes?: [number, number][];
+  titleSlug?: string | null; pages?: string[]; sizes?: [number, number][]; id?: number;
 }
 interface TitleSummary {
   slug: string; title: string; type: string | null; status: string | null; year: number | null; genres: string[];
   rating: number | null; latestChapter: number | null; latestDate: string | null; added: string; onSite: boolean;
-  readable: boolean; sources: string[]; own?: boolean; cover?: string | null; chapterCount?: number;
+  readable: boolean; sources: string[]; own?: boolean; cover?: string | null; chapterCount?: number; popularity?: number | null;
 }
 interface TitleDetail extends TitleSummary {
   description?: string | null; author?: string | null; artist?: string | null;
@@ -36,7 +40,7 @@ interface TitleDetail extends TitleSummary {
 interface LiveUpdate {
   series: string; slug: string; onSite: boolean; cover: string | null;
   chapter: number; title: string | null; date: string; sourceUrl: string | null; source: string | null; credit?: string | null;
-  titlePage?: boolean; readable?: boolean; titleSlug?: string | null; hosted?: boolean;
+  titlePage?: boolean; readable?: boolean; titleSlug?: string | null; hosted?: boolean; id?: number;
 }
 
 const via = (source?: string, credit?: string | null) => [source, credit].filter(Boolean).map((s) => esc(s!)).join(' · ');
@@ -47,9 +51,12 @@ const safeUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : '#');
 /** Images you uploaded (covers and pages), as written by the dashboard. */
 const MEDIA = /^data\/media\/[a-f0-9]{24}\.(jpg|png|webp|gif)$/;
 const mediaUrl = (p?: string | null) => (p && MEDIA.test(p) ? BASE + p : null);
+/** Covers from AniList, linked from AniList's own servers. */
+const ANILIST_COVER = /^https:\/\/s4\.anilist\.co\/file\/anilistcdn\/media\/manga\/cover\/(large|medium)\/[A-Za-z0-9_.-]{1,120}$/;
+const coverSrc = (p?: string | null) => mediaUrl(p) ?? (p && ANILIST_COVER.test(p) ? p : null);
 const chapterSlug = (n: number) => String(n).replace('.', '-');
 const titleHref = (slug: string) => `${BASE}title/?s=${encodeURIComponent(slug)}`;
-const chapterHref = (slug: string, n: number) => `${BASE}chapter/?s=${encodeURIComponent(slug)}&c=${n}`;
+const chapterHref = (slug: string, n: number, id?: number) => `${BASE}chapter/?s=${encodeURIComponent(slug)}&c=${n}${id ? `&g=${id}` : ''}`;
 /** Where a crawled chapter opens: its reading page here, or (older data) the original source. */
 const chapterLink = (titleSlug: string | null | undefined, n: number, sourceUrl?: string) =>
   titleSlug ? `href="${esc(chapterHref(titleSlug, n))}"` : `href="${esc(safeUrl(sourceUrl ?? '#'))}" rel="nofollow noopener" target="_blank"`;
@@ -62,6 +69,32 @@ function initialsCover(name: string, slug: string) {
   return `<span class="live-cover" style="--h:${hue}" aria-hidden="true"><b>${esc(initials)}</b><small>${esc(name)}</small></span>`;
 }
 
+/** A cover image, or the coloured tile when there is none or it fails to load. */
+function coverHtml(src: string | null, name: string, slug: string, cls = '') {
+  return src
+    ? `<img${cls ? ` class="${cls}"` : ''} src="${esc(src)}" alt="${esc(name)} cover" width="175" height="238" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-tile="${esc(name)}" data-slug="${esc(slug)}">`
+    : initialsCover(name, slug);
+}
+document.addEventListener('error', (e) => {
+  const img = e.target as HTMLImageElement;
+  if (img.tagName !== 'IMG' || !img.dataset.tile) return;
+  const box = document.createElement(img.classList.contains('series-cover') ? 'div' : 'span');
+  box.innerHTML = initialsCover(img.dataset.tile, img.dataset.slug ?? '');
+  if (box.tagName === 'DIV') {
+    // The title page's big cover keeps its size.
+    box.className = 'series-cover live-cover-wrap';
+    img.closest<HTMLElement>('.series-hero')?.style.removeProperty('--cover');
+    img.replaceWith(box);
+  } else img.replaceWith(box.firstElementChild!);
+}, true);
+
+const followBtn = (slug: string) => {
+  const on = isFollowed(slug);
+  return `<button type="button" class="follow-btn" data-follow="${esc(slug)}" aria-pressed="${on}" aria-label="${on ? 'Remove from' : 'Add to'} bookmarks">${on ? '✓' : '+'}</button>`;
+};
+const ago = (date: string) => `<time class="ago" datetime="${esc(date)}">${new Date(date).toLocaleDateString()}</time>`;
+const typeBadge = (type?: string | null, extra = '') => (type ? `<span class="type-badge ${esc(type)}${extra}">${esc(type)}</span>` : '');
+
 async function getJson<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(BASE + path, { cache: 'no-cache' });
@@ -72,7 +105,8 @@ async function getJson<T>(path: string): Promise<T | null> {
 }
 
 export async function applyLiveUpdates() {
-  await Promise.all([liveSeriesChapters(), liveLatestUpdates(), liveLibrary(), liveNewTitles(), liveTitlePage(), liveChapterPage()]);
+  await Promise.all([liveSeriesChapters(), liveLatestUpdates(), liveLibrary(), liveCatalogue(), liveTitlePage(), liveChapterPage()]);
+  initCarousels();
 }
 
 /** Series page: add newer chapters found by the crawler (they open on the chapter page). */
@@ -120,40 +154,54 @@ function cardHtml(u: LiveUpdate, chapters: LiveUpdate[]) {
   const internal = u.onSite || u.titlePage;
   const seriesHref = u.onSite ? `${BASE}manga/${u.slug}/` : u.titlePage ? titleHref(u.slug) : safeUrl(u.sourceUrl ?? '#');
   const ext = internal ? '' : ' rel="nofollow noopener" target="_blank"';
-  const src = u.onSite ? u.cover : mediaUrl(u.cover);
-  const cover = src
-    ? `<img src="${esc(src)}" alt="${esc(u.series)} cover" width="175" height="238" loading="lazy" decoding="async">`
-    : initialsCover(u.series, u.slug);
-  const credit = via(u.source ?? undefined, u.credit);
-  const pills = chapters
-    .map((c) => {
-      // Crawled chapters open on their chapter page here, which links to the original source.
-      return `<li><a ${chapterLink(c.titleSlug, c.chapter, c.sourceUrl ?? undefined)}>Chapter ${c.chapter}</a><time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></li>`;
-    })
+  const cover = coverHtml(u.onSite ? u.cover : coverSrc(u.cover), u.series, u.slug);
+  // Crawled chapters open on their chapter page here, which links to the original source.
+  const rows = chapters
+    .map((c) => `<div class="card-meta"><a ${c.titleSlug ? `href="${esc(chapterHref(c.titleSlug, c.chapter, c.id))}"` : chapterLink(null, c.chapter, c.sourceUrl ?? undefined)}>Ch.${c.chapter}</a>${ago(c.date)}</div>`)
     .join('');
+  const credit = via(u.credit ?? u.source ?? undefined);
   return `
 <article class="card live-card" data-series="${esc(u.slug)}">
-  <a href="${esc(seriesHref)}"${ext} class="card-cover">${cover}<span class="type-badge live">New</span></a>
-  <div class="card-body">
-    <h3 class="card-title"><a href="${esc(seriesHref)}"${ext}>${esc(u.series)}</a></h3>
-    ${credit ? `<p class="live-source">via ${credit}</p>` : ''}
-    <ul class="chapter-pills">${pills}</ul>
+  <div class="card-cover-wrap">
+    <a href="${esc(seriesHref)}"${ext} class="card-cover">${cover}<span class="type-badge live">New</span></a>
+    ${internal ? followBtn(u.titleSlug ?? u.slug) : ''}
   </div>
+  ${rows}
+  <h3 class="card-title"><a href="${esc(seriesHref)}"${ext}>${esc(u.series)}</a></h3>
+  ${credit ? `<p class="live-source">${credit}</p>` : ''}
 </article>`;
 }
 
-/** Home page "New titles" and the new-titles page: titles found by the connectors. */
-async function liveNewTitles() {
+/**
+ * Home page "Popular" and "New comics", and the new-titles page: titles found by the
+ * connectors and your own, from data/live/titles.json.
+ */
+async function liveCatalogue() {
+  const popular = document.querySelector<HTMLElement>('[data-live-popular]');
   const box = document.querySelector<HTMLElement>('[data-live-new-titles]');
-  if (!box) return;
+  if (!popular && !box) return;
   const data = await getJson<{ titles?: TitleSummary[] }>('data/live/titles.json');
-  const all = (data?.titles ?? []).filter((t) => !t.onSite);
+  const titles = data?.titles ?? [];
+  if (popular) {
+    // Most followed on AniList among titles with a recent chapter (last 30 days), then the rest.
+    const recent = (t: TitleSummary) => t.latestDate !== null && Date.now() - Date.parse(t.latestDate) < 30 * 86400000;
+    const list = titles.filter((t) => t.latestChapter !== null && !t.onSite)
+      .sort((a, b) => Number(recent(b)) - Number(recent(a)) || (b.popularity ?? -1) - (a.popularity ?? -1) || (b.latestDate ?? '').localeCompare(a.latestDate ?? ''))
+      .slice(0, Number(popular.dataset.limit || 12));
+    if (list.length >= 4) {
+      popular.querySelector<HTMLElement>('.car-track')!.innerHTML = list.map((t, i) => titleCardHtml(t, i + 1)).join('');
+      popular.hidden = false;
+      document.querySelectorAll<HTMLElement>('[data-static-popular]').forEach((el) => (el.hidden = true));
+    }
+  }
+  if (!box) return;
+  const all = titles.filter((t) => !t.onSite).sort((a, b) => b.added.localeCompare(a.added));
   if (!all.length) return;
-  const grid = box.querySelector<HTMLElement>('.series-grid')!;
+  const grid = box.querySelector<HTMLElement>('.series-grid, .car-track')!;
   const limit = Number(box.dataset.limit || 0);
   const render = (type: string) => {
     const list = all.filter((t) => !type || t.type === type);
-    grid.innerHTML = (limit ? list.slice(0, limit) : list).map(titleCardHtml).join('') || '<p class="muted">Nothing here yet.</p>';
+    grid.innerHTML = (limit ? list.slice(0, limit) : list).map((t) => titleCardHtml(t)).join('') || '<p class="muted">Nothing here yet.</p>';
   };
   box.querySelectorAll<HTMLButtonElement>('[data-type-filter]').forEach((btn) =>
     btn.addEventListener('click', () => {
@@ -165,27 +213,44 @@ async function liveNewTitles() {
   box.hidden = false;
 }
 
-function titleCardHtml(t: TitleSummary) {
+function titleCardHtml(t: TitleSummary, rank = 0) {
   const href = titleHref(t.slug);
   const when = t.latestDate ?? t.added;
-  const src = mediaUrl(t.cover);
-  const cover = src ? `<img src="${esc(src)}" alt="${esc(t.title)} cover" width="175" height="238" loading="lazy" decoding="async">` : initialsCover(t.title, t.slug);
-  // Your own titles' latest chapter opens the chapter itself.
-  const latestHref = t.own && t.latestChapter !== null ? chapterHref(t.slug, t.latestChapter) : href;
+  // The latest chapter opens the chapter itself.
+  const latestHref = t.latestChapter !== null ? chapterHref(t.slug, t.latestChapter) : href;
   const sub = t.own
     ? (t.chapterCount ? `${t.chapterCount} chapter${t.chapterCount === 1 ? '' : 's'}` : 'Coming soon') + (t.status ? ` · ${esc(cap(t.status))}` : '')
-    : t.sources.length ? `via ${esc(t.sources.join(' · '))}` : '';
+    : '';
   return `
 <article class="card live-card" data-series="${esc(t.slug)}">
-  <a href="${href}" class="card-cover">${cover}${t.type ? `<span class="type-badge ${esc(t.type)}">${esc(t.type)}</span>` : ''}</a>
-  <div class="card-body">
-    <h3 class="card-title"><a href="${href}">${esc(t.title)}</a></h3>
-    ${sub ? `<p class="live-source">${sub}</p>` : ''}
-    <ul class="chapter-pills">${t.latestChapter !== null
-      ? `<li><a href="${esc(latestHref)}">Chapter ${t.latestChapter}</a><time class="ago" datetime="${esc(when)}">${new Date(when).toLocaleDateString()}</time></li>`
-      : `<li><a href="${href}">Details</a><time class="ago" datetime="${esc(t.added)}">${new Date(t.added).toLocaleDateString()}</time></li>`}</ul>
+  <div class="card-cover-wrap">
+    <a href="${href}" class="card-cover">${coverHtml(coverSrc(t.cover), t.title, t.slug)}${rank ? `<span class="rank-badge">#${rank}</span>` : ''}${typeBadge(t.type, rank ? ' bottom' : '')}</a>
+    ${followBtn(t.slug)}
   </div>
+  <div class="card-meta">${t.latestChapter !== null ? `<a href="${esc(latestHref)}">Ch.${t.latestChapter}</a>` : '<a href="' + href + '">Details</a>'}${ago(when)}</div>
+  <h3 class="card-title"><a href="${href}">${esc(t.title)}</a></h3>
+  ${sub ? `<p class="live-source">${sub}</p>` : ''}
 </article>`;
+}
+
+/** Horizontal rows with ‹ › buttons (Popular, New comics). */
+function initCarousels() {
+  document.querySelectorAll<HTMLElement>('[data-carousel]').forEach((box) => {
+    const track = box.querySelector<HTMLElement>('.car-track');
+    if (!track || box.dataset.ready) return;
+    box.dataset.ready = '1';
+    const update = () => {
+      box.querySelectorAll<HTMLButtonElement>('[data-dir]').forEach((b) => {
+        b.disabled = b.dataset.dir === '-1' ? track.scrollLeft <= 2 : track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+      });
+    };
+    box.querySelectorAll<HTMLButtonElement>('[data-dir]').forEach((b) =>
+      b.addEventListener('click', () => track.scrollBy({ left: Number(b.dataset.dir) * track.clientWidth * 0.9, behavior: 'smooth' })),
+    );
+    track.addEventListener('scroll', update, { passive: true });
+    addEventListener('resize', update);
+    update();
+  });
 }
 
 /** Home page "Read on …": your own published titles, with search and Load more. */
@@ -205,7 +270,7 @@ async function liveLibrary() {
   const render = () => {
     const q = norm(input?.value.trim() ?? '');
     const list = q ? all.filter((t) => norm([t.title, ...((t as TitleDetail).altTitles ?? []), ...t.genres].join(' ')).includes(q)) : all;
-    grid.innerHTML = list.slice(0, shown).map(titleCardHtml).join('');
+    grid.innerHTML = list.slice(0, shown).map((t) => titleCardHtml(t)).join('');
     if (empty) empty.hidden = list.length > 0;
     if (more) more.hidden = list.length <= shown;
   };
@@ -236,21 +301,18 @@ async function liveTitlePage() {
   const latest = t.chapters[0];
   const first = t.chapters[t.chapters.length - 1];
   const link = (l: { name: string; url: string }, cls: string) => `<a class="${cls}" href="${esc(safeUrl(l.url))}" rel="nofollow noopener" target="_blank">${esc(l.name)}</a>`;
-  const chapters = t.chapters.map((c) => {
-    const from = via(c.source ?? undefined, c.credit);
-    const note = [c.pages?.length && !t.own ? 'Read here' : c.readable === false ? 'Release info' : '', from ? `Source: ${from}` : ''].filter(Boolean).join(' · ');
-    return `
-    <li data-n="${c.number}"><a href="${esc(chapterHref(t.slug, c.number))}">
-      <span>Chapter ${c.number}${c === latest ? ' <em class="new-badge">Latest</em>' : ''}${c.title ? ' – ' + esc(c.title) : ''}${note ? `<small class="live-credit">${note}</small>` : ''}</span>
-      <time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></a></li>`;
-  }).join('');
-  const coverSrc = mediaUrl(t.cover);
-  const cover = coverSrc ? `<img class="series-cover" src="${esc(coverSrc)}" alt="${esc(t.title)} cover" width="220" height="300" decoding="async">` : `<div class="series-cover live-cover-wrap">${initialsCover(t.title, t.slug)}</div>`;
+  const src = coverSrc(t.cover);
+  const cover = src
+    ? `<img class="series-cover" src="${esc(src)}" alt="${esc(t.title)} cover" width="220" height="300" decoding="async" referrerpolicy="no-referrer" data-tile="${esc(t.title)}" data-slug="${esc(t.slug)}">`
+    : `<div class="series-cover live-cover-wrap">${initialsCover(t.title, t.slug)}</div>`;
+  const groups = [...new Set(t.chapters.map(groupOf).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const resume = lastRead(t.slug);
+  const resumeCh = resume !== null ? t.chapters.find((c) => c.number === resume) : undefined;
   const actions = t.own
     ? `${first ? `<a class="btn" href="${esc(chapterHref(t.slug, first.number))}">Read First Chapter</a>` : ''}${latest && latest !== first ? `<a class="btn btn-ghost" href="${esc(chapterHref(t.slug, latest.number))}">Latest: Chapter ${latest.number}</a>` : ''}`
     : `${first ? `<a class="btn" href="${esc(chapterHref(t.slug, first.number))}">Chapter ${first.number}</a>` : ''}${latest && latest !== first ? `<a class="btn" href="${esc(chapterHref(t.slug, latest.number))}">Latest: Chapter ${latest.number}</a>` : ''}`;
   root.innerHTML = `
-<div class="series-hero"${coverSrc ? ` style="--cover:url('${esc(coverSrc)}')"` : ''}><div class="container">
+<div class="series-hero"${src ? ` style="--cover:url('${esc(src)}')"` : ''}><div class="container">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="${BASE}">Home</a></li>${t.own ? '' : `<li><a href="${BASE}new-titles/">New Titles</a></li>`}<li><span>${esc(t.title)}</span></li></ol></nav>
   <div class="series-head">
     ${cover}
@@ -266,19 +328,25 @@ async function liveTitlePage() {
         ${t.author ? `<div><dt>Author</dt><dd>${esc(t.author)}</dd></div>` : ''}
         ${t.artist && t.artist !== t.author ? `<div><dt>Artist</dt><dd>${esc(t.artist)}</dd></div>` : ''}
         ${latest ? `<div><dt>Latest</dt><dd>Chapter ${latest.number}</dd></div>` : ''}
-        <div><dt>Chapters</dt><dd>${t.chapters.length || '—'}</dd></div>
+        <div><dt>Chapters</dt><dd>${new Set(t.chapters.map((c) => c.number)).size || '—'}</dd></div>
         ${t.sources.length ? `<div><dt>Source</dt><dd>${esc(t.sources.join(', '))}</dd></div>` : ''}
       </dl>
       ${t.genres.length ? `<div class="genre-tags">${t.genres.slice(0, 10).map((g) => `<span>${esc(words(g))}</span>`).join('')}</div>` : ''}
-      <div class="series-actions">${actions}${reads.map((l) => link({ ...l, name: 'Visit original source' + (reads.length > 1 ? ` (${l.name})` : '') }, 'btn btn-ghost')).join('')}</div>
+      <div class="series-actions">${resumeCh ? `<a class="btn" href="${esc(chapterHref(t.slug, resumeCh.number, resumeCh.id))}">Continue: Ch.${resumeCh.number}</a>` : ''}${actions}<button type="button" class="btn btn-ghost bookmark-follow" data-follow="${esc(t.slug)}" aria-pressed="false"></button>${reads.map((l) => link({ ...l, name: 'Visit original source' + (reads.length > 1 ? ` (${l.name})` : '') }, 'btn btn-ghost')).join('')}</div>
     </div>
   </div>
 </div></div>
 <div class="container block series-body">
   ${t.description ? `<section><h2>Synopsis</h2><p class="synopsis">${esc(t.description).replace(/\n+/g, '<br>')}</p></section>` : ''}
-  <section>
-    <div class="section-head"><h2>Chapters</h2></div>
-    ${chapters ? `<ul class="chapter-list">${chapters}</ul>` : `<p class="muted">No chapters listed yet.${reads.length ? ' Use the reading links above.' : ''}</p>`}
+  <section class="cx-panel">
+    <div class="section-head"><h2>Chapters</h2><span class="muted small">${t.chapters.length} release${t.chapters.length === 1 ? '' : 's'}</span></div>
+    ${t.chapters.length ? `<div class="cx-tools">
+      <input type="search" class="cx-search" placeholder="Search chapter…" aria-label="Search chapter" inputmode="decimal">
+      ${groups.length > 1 ? `<select class="cx-group" aria-label="Scanlation group"><option value="">All groups</option>${groups.map((g) => `<option>${esc(g)}</option>`).join('')}</select>` : ''}
+      <div class="cx-sort" role="group" aria-label="Sort chapters"><button type="button" data-sort="number" aria-pressed="true">↓ Chapter</button><button type="button" data-sort="date" aria-pressed="false">Date</button></div>
+    </div>
+    <ul class="cx-chapters"></ul>
+    <p class="empty" data-empty hidden>No chapters match.</p>` : `<p class="muted">No chapters listed yet.${reads.length ? ' Use the reading links above.' : ''}</p>`}
   </section>
   ${t.credits.length ? `<section>
     <h2>Sources</h2>
@@ -287,6 +355,81 @@ async function liveTitlePage() {
     Each chapter page names its original source and links to it.</p>
   </section>` : ''}
 </div>`;
+  wireFollowToggle(root);
+  if (t.chapters.length) chapterList(root.querySelector<HTMLElement>('.cx-panel')!, t, latest);
+}
+
+/** Who released a chapter: its scanlation group, or else its source. */
+const groupOf = (c: LiveChapter) => (c.credit || c.source || '').trim();
+
+const USER_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20M10 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M20 20v-1.4a3.4 3.4 0 0 0-2.5-3.3M15.5 4.6a3.5 3.5 0 0 1 0 6.8"/></svg>';
+const MARK_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M6 3.5h12v17l-6-4.2-6 4.2z"/></svg>';
+
+/** The comix-style chapter list: search, group filter, sort, read marks and bookmarks. */
+function chapterList(panel: HTMLElement, t: TitleDetail, latest?: LiveChapter) {
+  const ul = panel.querySelector<HTMLUListElement>('.cx-chapters')!;
+  const search = panel.querySelector<HTMLInputElement>('.cx-search')!;
+  const group = panel.querySelector<HTMLSelectElement>('.cx-group');
+  const empty = panel.querySelector<HTMLElement>('[data-empty]')!;
+  let sort: 'number' | 'date' = 'number';
+  let desc = true;
+  const render = () => {
+    const read = readNumbers(t.slug);
+    const q = search.value.trim().replace(/^ch(apter)?\.?\s*/i, '');
+    const g = group?.value ?? '';
+    const list = t.chapters
+      .filter((c) => (!q || String(c.number).startsWith(q) || (c.title ?? '').toLowerCase().includes(q.toLowerCase())) && (!g || groupOf(c) === g))
+      .sort((a, b) => (sort === 'number' ? a.number - b.number || a.date.localeCompare(b.date) : a.date.localeCompare(b.date) || a.number - b.number) * (desc ? -1 : 1));
+    ul.innerHTML = list.map((c) => {
+      const key = chapterKey(c.number, c.id);
+      const note = c.pages?.length && !t.own ? 'Read here' : c.readable === false ? 'Release info' : '';
+      const who = groupOf(c);
+      return `<li class="cx-ch${read.has(String(c.number)) ? ' read' : ''}">
+        <a href="${esc(chapterHref(t.slug, c.number, c.id))}">
+          <b>Ch.${c.number}${c.title ? ` <span class="cx-title">– ${esc(c.title)}</span>` : ''}${c === latest ? ' <em class="new-badge">Latest</em>' : ''}</b>
+          <span class="cx-meta">${who ? `${USER_ICON}<span>${esc(who)}</span><i>·</i>` : ''}${ago(c.date)}${note ? `<i>·</i><span>${note}</span>` : ''}</span>
+        </a>
+        <button type="button" class="ch-mark" data-key="${esc(key)}" data-n="${c.number}" data-g="${esc(who)}" aria-pressed="${isMarked(t.slug, key)}" aria-label="Bookmark chapter ${c.number}">${MARK_ICON}</button>
+      </li>`;
+    }).join('');
+    empty.hidden = list.length > 0;
+    relativeTimes(ul);
+  };
+  search.addEventListener('input', render);
+  group?.addEventListener('change', render);
+  panel.querySelectorAll<HTMLButtonElement>('[data-sort]').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const next = btn.dataset.sort as 'number' | 'date';
+      desc = next === sort ? !desc : true;
+      sort = next;
+      panel.querySelectorAll<HTMLButtonElement>('[data-sort]').forEach((b) => {
+        const on = b.dataset.sort === sort;
+        b.setAttribute('aria-pressed', String(on));
+        b.textContent = (on ? (desc ? '↓ ' : '↑ ') : '') + (b.dataset.sort === 'number' ? 'Chapter' : 'Date');
+      });
+      render();
+    }),
+  );
+  ul.addEventListener('click', (e) => {
+    const btn = (e.target as Element).closest<HTMLButtonElement>('.ch-mark');
+    if (!btn) return;
+    const on = toggleMark(t.slug, btn.dataset.key!, `${t.title} Ch.${btn.dataset.n}${btn.dataset.g ? ` · ${btn.dataset.g}` : ''}`);
+    btn.setAttribute('aria-pressed', String(on));
+  });
+  render();
+}
+
+/** The "Bookmark" button on title pages. */
+function wireFollowToggle(root: ParentNode) {
+  root.querySelectorAll<HTMLButtonElement>('.bookmark-follow').forEach((btn) => {
+    const draw = () => {
+      const on = isFollowed(btn.dataset.follow!);
+      btn.textContent = on ? '★ Bookmarked' : '☆ Bookmark';
+      btn.setAttribute('aria-pressed', String(on));
+    };
+    draw();
+    btn.addEventListener('click', () => { toggleFollow(btn.dataset.follow!); draw(); });
+  });
 }
 
 /**
@@ -307,15 +450,25 @@ async function liveChapterPage() {
     return;
   }
   const t = res?.ok ? ((await res.json().catch(() => null)) as TitleDetail | null) : null;
-  const list = t ? [...t.chapters].sort((a, b) => a.number - b.number) : [];
-  const i = list.findIndex((c) => c.number === Number(num));
-  if (!t || i < 0) {
+  // One entry per chapter number; several groups' releases of a number are told apart by g=<id>.
+  const all = t ? [...t.chapters].sort((a, b) => a.number - b.number || a.date.localeCompare(b.date)) : [];
+  const numbers = [...new Set(all.map((c) => c.number))];
+  const releases = (n: number) => all.filter((c) => c.number === n);
+  const gid = Number(params.get('g') || 0);
+  const here = releases(Number(num));
+  const c0 = here.find((c) => c.id === gid) ?? here[0];
+  if (!t || !c0) {
     root.innerHTML = `<div class="container block"><h1>Chapter not found</h1><p class="muted">It may have been removed or not published yet. ${t ? `<a href="${esc(titleHref(t.slug))}">See all chapters of ${esc(t.title)}</a>.` : `<a href="${BASE}">Back to the home page</a>.`}</p></div>`;
     return;
   }
-  const c = list[i];
-  const prev = list[i - 1];
-  const next = list[i + 1];
+  const c = c0;
+  const i = numbers.indexOf(c.number);
+  // Prev and Next stay with the same group when it released that chapter too.
+  const pick = (n?: number) => (n === undefined ? undefined : releases(n).find((x) => groupOf(x) === groupOf(c)) ?? releases(n)[0]);
+  const prev = pick(numbers[i - 1]);
+  const next = pick(numbers[i + 1]);
+  markRead(t.slug, c.number);
+  const key = chapterKey(c.number, c.id);
   const seriesHref = t.onSite ? `${BASE}manga/${t.slug}/` : titleHref(t.slug);
   const name = `${t.title} Chapter ${c.number}`;
   document.title = `${name} – ${document.title.split(' | ').pop()}`;
@@ -324,10 +477,10 @@ async function liveChapterPage() {
   const visit = (cls: string) => (original ? `<a class="${cls}" href="${esc(original)}" rel="nofollow noopener" target="_blank">Visit original source</a>` : '');
   const pages = (c.pages ?? []).map((p, n) => ({ src: mediaUrl(p), size: c.sizes?.[n] })).filter((p) => p.src);
   const nav = (jump: boolean) => `<nav class="reader-nav" aria-label="Chapter navigation">
-      ${prev ? `<a class="btn btn-ghost" href="${esc(chapterHref(t.slug, prev.number))}" rel="prev">&laquo; Prev</a>` : '<span class="btn btn-ghost disabled">&laquo; Prev</span>'}
-      ${jump ? `<select class="chapter-jump" aria-label="Jump to chapter">${[...list].reverse().map((x) => `<option value="${esc(chapterHref(t.slug, x.number))}"${x === c ? ' selected' : ''}>Chapter ${x.number}${x.title ? ' – ' + esc(x.title) : ''}</option>`).join('')}</select>` : ''}
+      ${prev ? `<a class="btn btn-ghost" href="${esc(chapterHref(t.slug, prev.number, prev.id))}" rel="prev">&laquo; Prev</a>` : '<span class="btn btn-ghost disabled">&laquo; Prev</span>'}
+      ${jump ? `<select class="chapter-jump" aria-label="Jump to chapter">${[...numbers].reverse().map((n) => { const x = pick(n)!; return `<option value="${esc(chapterHref(t.slug, n, x.id))}"${n === c.number ? ' selected' : ''}>Chapter ${n}${x.title ? ' – ' + esc(x.title) : ''}</option>`; }).join('')}</select>` : ''}
       <a class="btn btn-ghost" href="${esc(seriesHref)}">Back to ${esc(t.title)}</a>
-      ${next ? `<a class="btn" href="${esc(chapterHref(t.slug, next.number))}" rel="next">Next &raquo;</a>` : '<span class="btn disabled">Next &raquo;</span>'}
+      ${next ? `<a class="btn" href="${esc(chapterHref(t.slug, next.number, next.id))}" rel="next">Next &raquo;</a>` : '<span class="btn disabled">Next &raquo;</span>'}
     </nav>`;
   const body = pages.length
     ? pages.map((p, n) => `<figure class="reader-page loading"${p.size ? ` style="aspect-ratio:${p.size[0]} / ${p.size[1]}"` : ''}>
@@ -345,12 +498,20 @@ async function liveChapterPage() {
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="${BASE}">Home</a></li><li><a href="${esc(seriesHref)}">${esc(t.title)}</a></li><li><span>Chapter ${c.number}</span></li></ol></nav>
   <h1 class="reader-title">${esc(name)}${c.title ? `<small> – ${esc(c.title)}</small>` : ''}</h1>
   <p class="muted center">Released <time datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time>${from ? ` · Source: <strong>${from}</strong>` : ''}${pages.length ? ` · ${pages.length} pages` : ''}</p>
-  ${pages.length && original ? `<p class="center">${visit('btn btn-ghost')}</p>` : ''}
+  <p class="center reader-tools">${pages.length && original ? visit('btn btn-ghost') : ''}<button type="button" class="btn btn-ghost ch-mark-btn" aria-pressed="${isMarked(t.slug, key)}"></button></p>
+  ${here.length > 1 ? `<p class="center releases">Also released by: ${here.filter((x) => x !== c).map((x) => `<a href="${esc(chapterHref(t.slug, x.number, x.id))}">${esc(groupOf(x) || 'another source')}</a>`).join(' · ')}</p>` : ''}
   ${nav(true)}
   <div class="reader">${body}</div>
   ${nav(false)}
 </div>`;
   root.querySelector<HTMLSelectElement>('.chapter-jump')?.addEventListener('change', (e) => (location.href = (e.target as HTMLSelectElement).value));
+  const markBtn = root.querySelector<HTMLButtonElement>('.ch-mark-btn')!;
+  const drawMark = () => (markBtn.textContent = markBtn.getAttribute('aria-pressed') === 'true' ? '★ Chapter bookmarked' : '☆ Bookmark chapter');
+  drawMark();
+  markBtn.addEventListener('click', () => {
+    markBtn.setAttribute('aria-pressed', String(toggleMark(t.slug, key, `${t.title} Ch.${c.number}${groupOf(c) ? ` · ${groupOf(c)}` : ''}`)));
+    drawMark();
+  });
   // Each page shows "Loading…" until it arrives, and a retry button if it fails.
   root.querySelectorAll<HTMLElement>('.reader-page').forEach((fig, n) => {
     const img = fig.querySelector('img')!;
