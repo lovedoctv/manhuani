@@ -473,20 +473,6 @@ switch ($page) {
         layout_end();
         break;
 
-    case 'page_image':
-        // Shows an uploaded page to you on the dashboard (the originals are private).
-        $u = chapter_for_pages((int) ($_GET['id'] ?? 0));
-        $name = (string) ($_GET['f'] ?? '');
-        $file = $u && in_array($name, update_pages($u), true) ? pages_private_dir((int) $u['id']) . "/$name" : null;
-        if ($file === null || !is_file($file)) {
-            http_response_code(404);
-            exit;
-        }
-        header('Content-Type: ' . PAGE_MIME[pathinfo($name, PATHINFO_EXTENSION)]);
-        header('Content-Length: ' . filesize($file));
-        readfile($file);
-        exit;
-
     case 'chapter_pages':
         $u = chapter_for_pages((int) ($_GET['id'] ?? 0));
         if (!$u) {
@@ -531,7 +517,7 @@ switch ($page) {
             </div>
             <div class="page-thumbs">
               <?php foreach ($pages as $i => $name): ?>
-                <figure><img src="<?= h(page_url('page_image', ['id' => $u['id'], 'f' => $name])) ?>" alt="Page <?= $i + 1 ?>" loading="lazy"><figcaption><?= $i + 1 ?></figcaption></figure>
+                <figure><img src="<?= h('../' . media_url($name)) ?>" alt="Page <?= $i + 1 ?>" loading="lazy"><figcaption><?= $i + 1 ?></figcaption></figure>
               <?php endforeach; ?>
             </div>
           </div>
@@ -963,11 +949,8 @@ switch ($page) {
           <h1>Dashboard</h1>
           <form method="post" action="<?= h(page_url('run_all')) ?>"><?= csrf_field() ?><button class="btn">Check all enabled sources now</button></form>
         </div>
-        <?php if (pages_missing()): ?>
-          <div class="alert warn">The file <code>admin/lib/pages.php</code> is missing on your server, so uploading chapter pages is switched off. Everything else works. Your host's virus scanner may have removed it: see "Troubleshooting" in the install guide.</div>
-        <?php endif; ?>
         <?php if (library_missing()): ?>
-          <div class="alert warn">The file <code>admin/lib/library.php</code> is missing on your server, so the Library (your own titles and chapters) is switched off. Everything else works. See "Troubleshooting" in the install guide.</div>
+          <div class="alert warn">The file <code>admin/lib/library.php</code> is missing on your server, so the Library (your own titles and chapters) and page uploads are switched off. Everything else works. See "Troubleshooting" in the install guide.</div>
         <?php endif; ?>
         <?php if ($cronStale): ?>
           <div class="alert warn">The scheduled check hasn't run <?= $lastRun ? 'for over 3 hours' : 'yet' ?>. Set up the cron job (see the install guide) so sources are checked automatically.</div>

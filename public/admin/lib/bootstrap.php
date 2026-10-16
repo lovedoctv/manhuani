@@ -7,7 +7,7 @@ if (!defined('MANHUANI')) {
     exit;
 }
 
-const MANHUANI_VERSION = '1.4.0';
+const MANHUANI_VERSION = '1.4.1';
 
 require __DIR__ . '/util.php';
 require __DIR__ . '/db.php';
@@ -22,22 +22,18 @@ require __DIR__ . '/connectors.php';
 require __DIR__ . '/sources.php';
 require __DIR__ . '/crawler.php';
 require __DIR__ . '/publish.php';
-if (is_file(__DIR__ . '/pages.php')) {
-    require __DIR__ . '/pages.php';
+// Uploads: your own titles and chapters (dashboard > Library) and pages for crawled
+// chapters. Some hosts' virus scanners delete upload code, so the crawler and dashboard
+// keep running without it; the dashboard then shows a warning (library_missing()).
+if (is_file(__DIR__ . '/library.php')) {
+    require __DIR__ . '/library.php';
 } else {
-    // Some hosts' virus scanners delete upload code. Keep the crawler and dashboard
-    // running without page hosting; the dashboard shows a warning (pages_missing()).
-    function pages_missing(): bool { return true; }
     function hosted_pages(?array $set = null): array { return []; }
     function pages_publish(): array { return []; }
     function pages_clear(int $updateId): void {}
     function update_pages(array $u): array { return []; }
     function chapter_for_pages(int $updateId): ?array { return null; }
-    function pages_upload(array $u, array $files): array { return [0, ['Page uploads are switched off because admin/lib/pages.php is missing.']]; }
-}
-// Your own titles and chapters (dashboard > Library). Same fallback as pages.php.
-if (is_file(__DIR__ . '/library.php')) {
-    require __DIR__ . '/library.php';
+    function pages_upload(array $u, array $field): array { return [0, ['Page uploads are switched off because admin/lib/library.php is missing.']]; }
 }
 function library_missing(): bool
 {

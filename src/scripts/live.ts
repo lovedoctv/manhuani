@@ -14,7 +14,7 @@
 // "credit" is the scanlation group for chapters from MangaDex, whose terms require crediting them.
 // "readable" is false for chapters only known from MangaUpdates: their link opens the release info.
 // "titleSlug" means the chapter has a reading page on this site: chapter/?s=<titleSlug>&c=<number>.
-// "pages" lists page images you uploaded for sources with hosting permission (data/pages/...).
+// "pages" lists page images you uploaded for sources with hosting permission (data/media/...).
 //   Without them, the chapter page says it isn't hosted here and links to the original source.
 // "own" marks titles you added in the dashboard's Library: their cover and pages are in data/media/,
 //   their chapters have no source and are always read here. Drafts are never in these files.
@@ -45,7 +45,7 @@ const BASE = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const safeUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : '#');
 /** Images you uploaded (covers and pages), as written by the dashboard. */
-const MEDIA = /^data\/(media\/[a-f0-9]{24}|pages\/\d+\/\d{3,4})\.(jpg|png|webp|gif)$/;
+const MEDIA = /^data\/media\/[a-f0-9]{24}\.(jpg|png|webp|gif)$/;
 const mediaUrl = (p?: string | null) => (p && MEDIA.test(p) ? BASE + p : null);
 const chapterSlug = (n: number) => String(n).replace('.', '-');
 const titleHref = (slug: string) => `${BASE}title/?s=${encodeURIComponent(slug)}`;

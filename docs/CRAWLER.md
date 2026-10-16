@@ -279,7 +279,7 @@ To host a source's chapters:
 Good to know:
 
 - The crawler never downloads pages itself. Only upload pages the publisher gave you permission to host, not pages saved from their site without it.
-- Your uploads are kept in `manhuani_private/pages/` and copied to `aduna.fit/manhuani/data/pages/` only while the source has hosting permission. If you untick the box, hide the chapter or hide its title, the website copies are removed at once. Your private originals stay until you click **Delete all pages**.
+- Your uploads are saved in `aduna.fit/manhuani/data/media/` with random names, like Library images. The website lists them only while the source has hosting permission and the chapter and its title are shown. If you untick the box or hide the chapter or title, readers no longer see them. **Delete all pages** removes the files.
 - Settings: `max_pages_per_chapter` (default 300) and `max_page_bytes` (default 10 MB).
 
 ## Library: your own titles and chapters
@@ -376,8 +376,8 @@ SQLite works well for this amount of data. If you prefer MySQL:
 | Updates don't show on the site | Click **Refresh website now** on the Updates page, then hard-refresh the site (Ctrl+F5). |
 | A MangaDex test says "no numbered chapters" | MangaDex has no chapters in that language for the title. Some titles only link to official publishers. |
 | "MangaDex asked us to slow down" | Nothing to do. The source waits and tries again later. |
-| The dashboard says `admin/lib/pages.php` is missing, or shows HTTP ERROR 500 after an update | Your host's virus scanner (Imunify360 or ImunifyAV in cPanel) may have removed the page-upload file. Look for `pages.php` in its list of detected files and mark it as a false positive (or ask Namecheap support to whitelist it), then click **Deploy HEAD Commit** again. Everything except page uploads keeps working meanwhile. |
-| The dashboard says `admin/lib/library.php` is missing | Same cause as above: look for `library.php` in Imunify's detected files, mark it as a false positive, then click **Deploy HEAD Commit** again. Until then the Library is switched off and your own titles are not listed on the site; nothing is deleted. |
+| The dashboard warned that `admin/lib/pages.php` was missing | That file no longer exists: since version 1.4.1 page uploads are part of `library.php`, which your server has kept so far. Deploy the latest version and the warning goes away. If you have an old `aduna.fit/manhuani/data/pages/` folder, you can delete it. |
+| The dashboard says `admin/lib/library.php` is missing | Your host's virus scanner (Imunify360 or ImunifyAV in cPanel) may have removed it. Look for `library.php` in Imunify's detected files, mark it as a false positive, then click **Deploy HEAD Commit** again. Until then the Library and page uploads are switched off and your own titles are not listed on the site; nothing is deleted. |
 | A source keeps failing | Open **Logs** to see why. After 10 errors in a row it switches itself off. Fix it, test it, then enable it again. |
 
 Check that the private parts are blocked: https://aduna.fit/manhuani/admin/cli.php should show **403 Forbidden**.
