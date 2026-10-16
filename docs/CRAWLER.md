@@ -149,13 +149,15 @@ The test also shows a few examples of the chapter releases it understood.
 | --- | --- | --- | --- |
 | **MangaDex** | New titles and new English chapters of Korean and Chinese series | Yes: each chapter opens on mangadex.org, plus the official English publisher when MangaDex lists one | 60 min |
 | **MangaUpdates** | Chapter releases announced by scanlation groups | No: these chapters open the series page on MangaUpdates. When MangaDex has the same chapter, its reading link replaces it. | 30 min |
-| **AniList** | Genres, status, year, rating, cover, popularity and official reading sites (Webtoon, Tapas, Bilibili and others) for titles found by the others, plus 15 trending manhwa and 15 trending manhua a day | Official sites only | 120 min |
+| **AniList** | Genres, status, year, rating, cover, popularity and official reading sites (Webtoon, Tapas, Bilibili and others) for titles found by the others, plus 15 trending manhwa and 15 trending manhua a day | Official sites only | 60 min |
 | **Bangumi** | Matches manhua by their Chinese name and links their bgm.tv page | No | 180 min |
 | **Anime News Network** | Genres, year and the official website from the ANN Encyclopedia | Official website only | 180 min |
 
 Only MangaDex gives chapter pages that can be read. MangaUpdates gives release information. AniList, Bangumi and ANN give series details. No source is used to copy chapter pages or cover images.
 
 Covers come from AniList. The website shows them straight from AniList's servers: they are never downloaded or saved on your server. Titles AniList doesn't know, or whose cover fails to load, get a coloured tile with their initials. MangaDex covers aren't used because MangaDex doesn't allow other sites to show them directly.
+
+Covers fill in over the first runs after an update. Each AniList run adds covers for up to 75 titles it already knows and looks up about 6 more titles by name, starting with the ones that have the newest chapters. To speed this up, open **Connectors** and click **Run now** on AniList a few times. Titles that AniList doesn't list keep the tile.
 
 ### Turn them on
 
@@ -355,7 +357,7 @@ Settings live in `~/manhuani_private/config.php`. You don't need to change any o
 | `mangadex_original_languages` | `['ko', 'zh', 'zh-hk']` | Original languages MangaDex discovery follows |
 | `connector_intervals` | `[]` | Custom check intervals, e.g. `['mangadex' => 30]` (minutes) |
 | `connector_max_requests` | 12 | Request limit per connector per run |
-| `enrich_per_run` | 4 | Titles looked up per run on AniList, Bangumi and ANN |
+| `enrich_per_run` | 4 | Titles looked up per run on Bangumi and ANN. AniList looks up at least 6, as many as its request limit allows |
 | `titles_published` | 300 | How many titles the website lists |
 | `max_page_bytes` | 10485760 | Largest page image you can upload (10 MB) |
 | `max_cover_bytes` | 5242880 | Largest cover image you can upload (5 MB) |
