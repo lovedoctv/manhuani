@@ -282,6 +282,37 @@ Good to know:
 - Your uploads are kept in `manhuani_private/pages/` and copied to `aduna.fit/manhuani/data/pages/` only while the source has hosting permission. If you untick the box, hide the chapter or hide its title, the website copies are removed at once. Your private originals stay until you click **Delete all pages**.
 - Settings: `max_pages_per_chapter` (default 300) and `max_page_bytes` (default 10 MB).
 
+## Library: your own titles and chapters
+
+Open **Library** in the dashboard to publish comics you own or have the rights to publish. Readers read them on your site, with no outside links.
+
+### Add a title and its chapters
+
+1. Click **Add title**. Fill in the title, other names, type, status, author, artist, year, genres (comma separated) and description. Choose a cover image (JPG, PNG, WEBP or GIF, up to 5 MB; a tall 2:3 image looks best). Leave **On the website** on **Draft** for now and click **Add title**.
+2. Under **Chapters**, type the chapter number (1, 12 or 12.5) and an optional chapter title, then click **Add chapter**. New chapters start as drafts.
+3. On the chapter screen, click **Choose Files**, select all the page images at once and click **Upload**. They're added in file-name order, so name them `001.jpg`, `002.jpg`, and so on.
+4. Check the order under **Pages in reading order**. Use ↑ and ↓, or type new numbers in the boxes and click **Save order** (2.5 puts a page between 2 and 3). **Replace** swaps one image; tick pages and click **Delete ticked pages** to remove them.
+5. Click **Preview** to read the chapter top to bottom as readers will.
+6. Click **Publish chapter**. A chapter needs at least one page.
+7. When the title is ready, open it, set **On the website** to **Published** and click **Save title**.
+
+Readers see a chapter only when both the chapter and its title are published. You can edit everything later; the website updates as soon as you save.
+
+### Where it shows on the website
+
+- **Home page:** "Read on Manhuani" lists your published titles with their cover and latest chapter, with a search box and **Load more** (12 at a time). New chapters also appear in Latest Updates.
+- **Title page:** `/manhuani/title/?s=<title>` shows the cover, details, synopsis, **Read First Chapter**, the latest chapter, and every published chapter, newest first.
+- **Chapter page:** `/manhuani/chapter/?s=<title>&c=<number>` shows the pages in order, scrolling down, with Prev, Next, a chapter list and **Back to (title)**. The address can be shared and reloaded.
+- **Drafts never show:** draft titles, draft chapters and deleted chapters are left out of the website's files. Their addresses say "not found".
+
+### Storage and limits
+
+- Covers and pages are saved in `aduna.fit/manhuani/data/media/` with random names such as `3f9c0a…e1.jpg`. Deploying a new version never touches that folder. Back it up together with `manhuani_private/` (the database).
+- Each upload is checked: it must be a real JPG, PNG, WEBP or GIF, under `max_page_bytes` (10 MB, pages) or `max_cover_bytes` (5 MB, covers). Anything else is refused. Only you, logged in, can upload, edit, publish or delete.
+- Your server also limits uploads. The chapter screen shows the limits: how many files go up at once (`max_file_uploads`) and how much per upload (`post_max_size`). If an upload is too big, the dashboard says so; upload fewer pages at a time. To raise them, open cPanel → **Select PHP Version** → **Options** and set `upload_max_filesize` (for example 10M), `post_max_size` (for example 64M) and `max_file_uploads` (for example 50).
+- Page images use your hosting disk space. Check **Disk Usage** in cPanel now and then.
+- Draft images are in the same folder. Nothing on the site links to them and their names can't be guessed, but don't upload anything you'd never want public.
+
 ## Command reference
 
 Run these in cPanel Terminal. Replace `php` with your full PHP path if `php -v` showed an old version.
@@ -317,6 +348,8 @@ Settings live in `~/manhuani_private/config.php`. You don't need to change any o
 | `connector_max_requests` | 12 | Request limit per connector per run |
 | `enrich_per_run` | 4 | Titles looked up per run on AniList, Bangumi and ANN |
 | `titles_published` | 300 | How many titles the website lists |
+| `max_page_bytes` | 10485760 | Largest page image you can upload (10 MB) |
+| `max_cover_bytes` | 5242880 | Largest cover image you can upload (5 MB) |
 
 Never upload `config.php` or the database to GitHub, and never move the `manhuani_private` folder inside `aduna.fit`.
 
@@ -344,6 +377,7 @@ SQLite works well for this amount of data. If you prefer MySQL:
 | A MangaDex test says "no numbered chapters" | MangaDex has no chapters in that language for the title. Some titles only link to official publishers. |
 | "MangaDex asked us to slow down" | Nothing to do. The source waits and tries again later. |
 | The dashboard says `admin/lib/pages.php` is missing, or shows HTTP ERROR 500 after an update | Your host's virus scanner (Imunify360 or ImunifyAV in cPanel) may have removed the page-upload file. Look for `pages.php` in its list of detected files and mark it as a false positive (or ask Namecheap support to whitelist it), then click **Deploy HEAD Commit** again. Everything except page uploads keeps working meanwhile. |
+| The dashboard says `admin/lib/library.php` is missing | Same cause as above: look for `library.php` in Imunify's detected files, mark it as a false positive, then click **Deploy HEAD Commit** again. Until then the Library is switched off and your own titles are not listed on the site; nothing is deleted. |
 | A source keeps failing | Open **Logs** to see why. After 10 errors in a row it switches itself off. Fix it, test it, then enable it again. |
 
 Check that the private parts are blocked: https://aduna.fit/manhuani/admin/cli.php should show **403 Forbidden**.

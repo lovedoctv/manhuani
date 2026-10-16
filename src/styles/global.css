@@ -327,3 +327,19 @@ button, input, select { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- Reader pages (your own chapters and hosted pages) ---------- */
+.reader-page { position: relative; margin: 0; width: 100%; max-width: 800px; }
+.reader-page img { display: block; width: 100%; height: auto; max-width: 100%; }
+.reader-page.loading, .reader-page.failed { min-height: 240px; background: var(--surface); border: 1px dashed var(--border); }
+.reader-page.loading img, .reader-page.failed img { opacity: 0; }
+.page-status { position: absolute; inset: 0; display: none; place-content: center; gap: 10px; padding: 20px; text-align: center; color: var(--muted); }
+.reader-page.loading .page-status, .reader-page.failed .page-status { display: grid; }
+.library-search { width: min(320px, 100%); }
+.library-search input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); }
+.library-search input:focus { border-color: var(--accent); outline: none; }
+.library-more { display: flex; justify-content: center; margin-top: 20px; }
+@media (max-width: 720px) {
+  .library-head { flex-wrap: wrap; }
+  .library-search { width: 100%; }
+}

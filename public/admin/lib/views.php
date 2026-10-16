@@ -8,7 +8,7 @@ function page_url(string $page, array $params = []): string
 
 function layout_start(string $title, string $active = ''): void
 {
-    $nav = ['dashboard' => 'Dashboard', 'sources' => 'Sources', 'connectors' => 'Connectors', 'titles' => 'Titles', 'updates' => 'Updates', 'series_info' => 'Series info', 'logs' => 'Logs'];
+    $nav = ['dashboard' => 'Dashboard', 'library' => 'Library', 'sources' => 'Sources', 'connectors' => 'Connectors', 'titles' => 'Titles', 'updates' => 'Updates', 'series_info' => 'Series info', 'logs' => 'Logs'];
     ?><!doctype html>
 <html lang="en">
 <head>
@@ -43,7 +43,7 @@ function layout_start(string $title, string $active = ''): void
 function layout_end(): void
 {
     ?></main>
-<footer class="wrap foot">Collects metadata and links from authorized feeds and official APIs only. No CAPTCHAs, logins, paywalls or images.</footer>
+<footer class="wrap foot">Collects metadata and links from authorized feeds and official APIs only. No CAPTCHAs, logins or paywalls. Images come only from your own uploads.</footer>
 </body>
 </html><?php
 }
