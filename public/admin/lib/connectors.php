@@ -276,7 +276,7 @@ function chapter_number($v): ?float
 function titles_needing(string $connector, array &$state, int $limit, ?string $type = null): array
 {
     $tried = $state['tried'] ?? [];
-    $rows = db_all('SELECT t.* FROM titles t WHERE t.hidden = 0 AND NOT EXISTS (SELECT 1 FROM title_sources s WHERE s.title_id = t.id AND s.connector = ?)'
+    $rows = db_all('SELECT t.* FROM titles t WHERE t.hidden = 0 AND COALESCE(t.origin, \'\') <> \'own\' AND NOT EXISTS (SELECT 1 FROM title_sources s WHERE s.title_id = t.id AND s.connector = ?)'
         . ($type ? ' AND t.type = ?' : '') . ' ORDER BY t.updated_at DESC LIMIT 200', $type ? [$connector, $type] : [$connector]);
     $out = [];
     foreach ($rows as $r) {

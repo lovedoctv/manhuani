@@ -6,7 +6,9 @@ defined('MANHUANI') || exit;
  *   data/live/latest.json            newest updates for the Latest Updates section
  *   data/live/series/<slug>.json     extra chapters for series pages on your site
  *   data/live/titles.json, title/*   titles found by the connectors (see publish_titles)
+ *   data/live/library.json           your own titles (dashboard > Library) for the home page grid
  *   data/pages/<id>/*                chapter pages you uploaded, for sources with hosting permission (lib/pages.php)
+ * Your own titles' covers and pages are in data/media/ (lib/library.php).
  * Apart from those uploads: metadata and links only, never images or content from other sites.
  */
 function publish_updates(): int
@@ -37,6 +39,12 @@ function publish_updates(): int
         'source' => update_source_label($r),
         'credit' => $r['credit'],
     ], $rows);
+    if (!library_missing()) {
+        // Your newly published chapters join the list by date.
+        $updates = array_merge($updates, library_latest_updates($limit));
+        usort($updates, fn ($a, $b) => strcmp($b['date'], $a['date']));
+        $updates = array_slice($updates, 0, $limit);
+    }
 
     write_atomic("$base/latest.json", json_encode(['generated' => gmdate('c'), 'updates' => $updates], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
@@ -67,8 +75,12 @@ function publish_updates(): int
 function publish_titles(string $base, array $onSite): void
 {
     $limit = (int) config('titles_published');
-    $titles = db_all("SELECT * FROM titles WHERE hidden = 0 ORDER BY COALESCE(latest_chapter_at, created_at) DESC, id DESC LIMIT $limit");
+    // Your own titles are always listed; the catalogue fills up to the limit.
+    $titles = db_all("SELECT * FROM titles WHERE hidden = 0 AND COALESCE(origin, '') <> 'own' ORDER BY COALESCE(latest_chapter_at, created_at) DESC, id DESC LIMIT $limit");
+    $own = library_missing() ? [] : db_all("SELECT * FROM titles WHERE hidden = 0 AND origin = 'own' ORDER BY COALESCE(latest_chapter_at, created_at) DESC, id DESC");
+    $titles = array_merge($own, $titles);
     $list = [];
+    $library = [];
     $written = [];
     foreach ($titles as $t) {
         $sources = db_all('SELECT connector, external_id, url FROM title_sources WHERE title_id = ? ORDER BY id', [$t['id']]);
@@ -89,20 +101,35 @@ function publish_titles(string $base, array $onSite): void
             'readable' => (bool) array_filter($links, fn ($l) => $l['kind'] === 'read'),
             'sources' => array_values(array_unique(array_column($credits, 'name'))),
         ];
-        $list[] = $item;
         $chs = db_all("SELECT u.*, s.name AS source_name, s.method AS source_method FROM updates u LEFT JOIN sources s ON s.id = u.source_id
             WHERE u.title_id = ? AND u.hidden = 0 ORDER BY u.chapter_number DESC LIMIT 300", [$t['id']]);
-        $detail = $item + [
+        $chapters = array_map(fn ($c) => chapter_json($c + ['tslug' => $t['slug']]), $chs);
+        $extra = [];
+        if (($t['origin'] ?? null) === 'own') {
+            // Your published chapters, read on this site. Drafts are never listed.
+            $chapters = library_public_chapters($t);
+            $item['own'] = true;
+            $item['readable'] = (bool) $chapters;
+            $item['latestChapter'] = $chapters ? $chapters[0]['number'] : null;
+            $item['latestDate'] = $chapters ? max(array_column($chapters, 'date')) : null;
+            $item['chapterCount'] = count($chapters);
+            $item['cover'] = media_name_ok($t['cover']) ? media_url($t['cover']) : null;
+            $extra = ['description' => $t['description'], 'author' => $t['author'], 'artist' => $t['artist']];
+            $library[] = $item + ['altTitles' => json_decode((string) $t['alt_titles'], true) ?: []];
+        }
+        $list[] = $item;
+        $detail = $item + $extra + [
             'altTitles' => json_decode((string) $t['alt_titles'], true) ?: [],
             'links' => $links,
             'credits' => $credits,
-            'chapters' => array_map(fn ($c) => chapter_json($c + ['tslug' => $t['slug']]), $chs),
+            'chapters' => $chapters,
         ];
         write_if_changed("$base/title/{$t['slug']}.json", json_encode($detail, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         $written[$t['slug']] = true;
     }
     remove_unlisted("$base/title", $written);
     write_atomic("$base/titles.json", json_encode(['generated' => gmdate('c'), 'titles' => $list], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    write_atomic("$base/library.json", json_encode(['generated' => gmdate('c'), 'titles' => $library], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 }
 
 /** A connector's name, or for one of your own sources, the source's name. */

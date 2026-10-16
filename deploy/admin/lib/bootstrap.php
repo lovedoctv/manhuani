@@ -7,7 +7,7 @@ if (!defined('MANHUANI')) {
     exit;
 }
 
-const MANHUANI_VERSION = '1.3.0';
+const MANHUANI_VERSION = '1.4.0';
 
 require __DIR__ . '/util.php';
 require __DIR__ . '/db.php';
@@ -34,6 +34,14 @@ if (is_file(__DIR__ . '/pages.php')) {
     function update_pages(array $u): array { return []; }
     function chapter_for_pages(int $updateId): ?array { return null; }
     function pages_upload(array $u, array $files): array { return [0, ['Page uploads are switched off because admin/lib/pages.php is missing.']]; }
+}
+// Your own titles and chapters (dashboard > Library). Same fallback as pages.php.
+if (is_file(__DIR__ . '/library.php')) {
+    require __DIR__ . '/library.php';
+}
+function library_missing(): bool
+{
+    return !function_exists('library_titles');
 }
 
 /** @return list<string> what this server is missing, empty when everything is there */
@@ -139,6 +147,7 @@ function default_config(string $dir): array
         'titles_published' => 300,                   // how many discovered titles the website lists
         'max_pages_per_chapter' => 300,              // uploaded pages per chapter (sources with hosting permission)
         'max_page_bytes' => 10485760,                // largest page image you can upload (10 MB)
+        'max_cover_bytes' => 5242880,                // largest cover image you can upload (5 MB)
         'allow_private_hosts' => false,              // only for local testing
     ];
 }

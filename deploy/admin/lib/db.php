@@ -200,6 +200,28 @@ function db_migrate(): void
             body $text NOT NULL,
             expires_at {$str(19)} NOT NULL
         )$engine",
+        // Your own chapters and their page images (lib/library.php).
+        "CREATE TABLE IF NOT EXISTS chapters (
+            id $id,
+            title_id INTEGER NOT NULL,
+            number DECIMAL(10,2) NOT NULL,
+            label {$str(255)} NULL,
+            status {$str(10)} NOT NULL DEFAULT 'draft',
+            published_at {$str(19)} NULL,
+            created_at {$str(19)} NOT NULL,
+            updated_at {$str(19)} NOT NULL,
+            UNIQUE (title_id, number)
+        )$engine",
+        "CREATE TABLE IF NOT EXISTS chapter_pages (
+            id $id,
+            chapter_id INTEGER NOT NULL,
+            position INTEGER NOT NULL,
+            file {$str(64)} NOT NULL,
+            width INTEGER NULL,
+            height INTEGER NULL,
+            bytes INTEGER NULL,
+            created_at {$str(19)} NOT NULL
+        )$engine",
         "CREATE TABLE IF NOT EXISTS meta (
             k {$str(64)} NOT NULL PRIMARY KEY,
             v $text NULL
@@ -227,6 +249,13 @@ function db_migrate(): void
     if (!db_has_column('updates', 'pages')) {
         db()->exec('ALTER TABLE updates ADD COLUMN pages TEXT NULL');
     }
+    // Schema 5: titles you add yourself (origin = 'own') with a cover and description.
+    foreach (['origin' => ($mysql ? 'VARCHAR(10)' : 'TEXT') . ' NULL', 'description' => 'TEXT NULL', 'author' => ($mysql ? 'VARCHAR(255)' : 'TEXT') . ' NULL',
+        'artist' => ($mysql ? 'VARCHAR(255)' : 'TEXT') . ' NULL', 'cover' => ($mysql ? 'VARCHAR(64)' : 'TEXT') . ' NULL'] as $col => $def) {
+        if (!db_has_column('titles', $col)) {
+            db()->exec("ALTER TABLE titles ADD COLUMN $col $def");
+        }
+    }
     $indexes = [
         'idx_updates_created' => 'updates (created_at)',
         'idx_updates_slug' => 'updates (series_slug)',
@@ -236,6 +265,8 @@ function db_migrate(): void
         'idx_title_keys_title' => 'title_keys (title_id)',
         'idx_titles_created' => 'titles (created_at)',
         'idx_login_ip' => 'login_attempts (ip, attempted_at)',
+        'idx_chapters_title' => 'chapters (title_id)',
+        'idx_chapter_pages_chapter' => 'chapter_pages (chapter_id, position)',
     ];
     foreach ($indexes as $name => $on) {
         if ($mysql) {
@@ -250,7 +281,7 @@ function db_migrate(): void
     meta_set('schema_version', (string) DB_SCHEMA_VERSION);
 }
 
-const DB_SCHEMA_VERSION = 4;
+const DB_SCHEMA_VERSION = 5;
 
 /** Runs db_migrate() when the database is older than this code, so updates need no manual step. */
 function db_ensure_schema(): void

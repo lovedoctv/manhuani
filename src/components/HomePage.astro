@@ -29,6 +29,18 @@ const jsonLd = {
 };
 ---
 <Base title={page > 1 ? `Latest Updates – Page ${page}` : undefined} jsonLd={page === 1 ? jsonLd : undefined} noindex={page > 1}>
+  {page === 1 && site.liveUpdates && (
+    <section class="container block" data-live-library data-per="12" hidden>
+      <div class="section-head library-head">
+        <h2>Read on {site.name}</h2>
+        <form class="library-search" role="search"><input type="search" placeholder="Search titles" aria-label="Search titles" /></form>
+      </div>
+      <div class="series-grid"></div>
+      <p class="empty" data-empty hidden>No titles match your search.</p>
+      <div class="library-more"><button type="button" class="btn btn-ghost" data-load-more hidden>Load more</button></div>
+    </section>
+  )}
+
   {page === 1 && (
     <section class="container block">
       <div class="section-head"><h2>Popular Series</h2><a href={url('/manga/')}>View all</a></div>

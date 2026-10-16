@@ -19,3 +19,4 @@ manhuani_private/
 *.sqlite
 *.sqlite-journal
 public/data/live/
+public/data/media/
