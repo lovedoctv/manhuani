@@ -3,7 +3,7 @@ import Base from '../../../../layouts/Base.astro';
 import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
 import {
   allSeries, type Series, type Chapter, seriesUrl, chapterUrl, chapterSlug, sortedChapters, formatDate, absoluteUrl,
-  chapterSubtitle,
+  chapterSubtitle, url,
 } from '../../../../lib/data';
 
 export async function getStaticPaths() {
@@ -26,6 +26,9 @@ const d = series.data;
 const name = `${d.title} Chapter ${chapter.number}`;
 const subtitle = chapterSubtitle(chapter);
 const sourceName = d.source?.name;
+// Page images in order. Site paths like /chapters/x/1/01.webp get the /manhuani/ folder added;
+// full https:// addresses are kept as they are. Blank entries are skipped.
+const pages = chapter.images.map((s) => s.trim()).filter(Boolean).map((s) => url(s));
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'ComicIssue',
@@ -51,8 +54,13 @@ const jsonLd = {
     </nav>
 
     <div class="reader">
-      {chapter.images.length > 0 ? (
-        chapter.images.map((src, i) => <img src={src} alt={`${name} page ${i + 1}`} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" />)
+      {pages.length > 0 ? (
+        pages.map((src, i) => (
+          <figure class="reader-page">
+            <img src={src} alt={`${name} page ${i + 1}`} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" />
+            <figcaption class="page-status">Loading page {i + 1}…</figcaption>
+          </figure>
+        ))
       ) : chapter.sourceUrl ? (
         <div class="reader-empty">
           <p>This chapter is published on {sourceName ?? 'another site'}.</p>

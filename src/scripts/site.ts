@@ -1,4 +1,4 @@
-import { applyLiveUpdates } from './live';
+import { applyLiveUpdates, watchReaderPages } from './live';
 import { getBookmarks, isFollowed, toggleFollow } from './store';
 import { relativeTimes } from './time';
 
@@ -69,6 +69,7 @@ document.addEventListener('click', (e) => {
   document.querySelectorAll<HTMLButtonElement>(`.follow-btn[data-follow="${CSS.escape(btn.dataset.follow!)}"]`).forEach((b) => renderFollowButtons(b.parentElement!));
 });
 renderFollowButtons();
+watchReaderPages(document);
 
 applyLiveUpdates().then(() => {
   relativeTimes();

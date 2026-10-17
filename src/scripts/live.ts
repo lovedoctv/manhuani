@@ -517,8 +517,15 @@ async function liveChapterPage() {
     markBtn.setAttribute('aria-pressed', String(toggleMark(t.slug, key, `${t.title} Ch.${c.number}${groupOf(c) ? ` · ${groupOf(c)}` : ''}`)));
     drawMark();
   });
-  // Each page shows "Loading…" until it arrives, and a retry button if it fails.
+  watchReaderPages(root);
+}
+
+/** Each page shows "Loading…" until it arrives, and a retry button if it fails.
+ *  Used by the live reader above and by the static chapter pages (site.ts). */
+export function watchReaderPages(root: ParentNode) {
   root.querySelectorAll<HTMLElement>('.reader-page').forEach((fig, n) => {
+    if (fig.dataset.watched) return;
+    fig.dataset.watched = '1';
     const img = fig.querySelector('img')!;
     const status = fig.querySelector<HTMLElement>('.page-status')!;
     const done = () => { fig.classList.remove('loading', 'failed'); fig.style.aspectRatio = ''; };
@@ -533,6 +540,7 @@ async function liveChapterPage() {
       });
     };
     if (img.complete) (img.naturalWidth ? done() : img.getAttribute('loading') === 'eager' && failed());
+    else fig.classList.add('loading');
     img.addEventListener('load', done);
     img.addEventListener('error', failed);
   });
