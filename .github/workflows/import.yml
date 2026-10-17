@@ -1,0 +1,86 @@
+# Imports chapters from the permitted sources in crawler/sources.json, rebuilds deploy/ and
+# commits the result to main. Run it from the Actions tab ("Import series" > "Run workflow"),
+# and it also runs once a day. It never deploys: publish as usual with cPanel's
+# "Update from Remote" and "Deploy HEAD Commit". See docs/IMPORTER.md.
+name: Import series
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Source id from crawler/sources.json (leave empty for every source)
+        required: false
+        default: ''
+      series:
+        description: Series slug (needed when you give a source)
+        required: false
+        default: ''
+      dry_run:
+        description: Dry run (check everything, change nothing)
+        type: boolean
+        default: true
+  schedule:
+    - cron: '23 3 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-series
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    env:
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Import
+        env:
+          # One repository secret holding a JSON object of tokens, e.g. {"PUBLISHER_TOKEN": "..."}.
+          CRAWLER_SECRETS: ${{ secrets.CRAWLER_SECRETS }}
+          SOURCE: ${{ inputs.source }}
+          SERIES: ${{ inputs.series }}
+        run: |
+          args=(--quiet --summary-md "$RUNNER_TEMP/summary.md")
+          if [ -n "$SOURCE" ]; then args+=(--source "$SOURCE" --series "$SERIES"); else args+=(--all); fi
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          set +e
+          npm run crawler -- "${args[@]}"
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY" || true
+          # Exit code 2 means some chapters failed: everything else is kept, and the summary lists them.
+          if [ "$code" = 1 ]; then exit 1; fi
+      - name: Keep the run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: import-logs
+          path: crawler/logs/
+          if-no-files-found: ignore
+      - name: Build and check the site
+        if: env.DRY_RUN != 'true'
+        run: |
+          npm run build
+          npm run check
+      - name: Commit the imported chapters
+        if: env.DRY_RUN != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for p in src/content/series public/chapters public/covers crawler/state deploy; do
+            if [ -e "$p" ]; then git add -A -- "$p"; fi
+          done
+          if git diff --cached --quiet; then
+            echo "Nothing new to import."
+          else
+            git commit -m "Import chapters from permitted sources"
+            git push
+          fi

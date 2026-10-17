@@ -26,3 +26,7 @@ public/data/media/
 /app.js
 /stderr.log
 /tmp/
+
+# Series importer (npm run crawler): run logs and half-finished downloads stay local
+/crawler/logs/
+/crawler/.staging/

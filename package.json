@@ -7,7 +7,9 @@
     "dev": "astro dev",
     "build": "astro build && node scripts/make-deploy.mjs",
     "preview": "node scripts/serve.mjs",
-    "check": "node scripts/check-links.mjs"
+    "check": "node scripts/check-links.mjs",
+    "crawler": "node scripts/crawler/cli.mjs",
+    "test": "node --test scripts/crawler/test/*.test.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.3.3",

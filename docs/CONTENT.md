@@ -49,6 +49,7 @@ Optional chapter fields:
 - `"title": "Chapter name"`
 - `"images": ["/chapters/my-series/25/01.webp", "..."]` for pages you have the right to host. Put the files in `public/chapters/...`.
   Pages show in the order listed, and the `/manhuani` folder is added to these paths automatically. A full `https://` address also works, but only for images you own or have written permission to publish from that host. A page that fails to load shows a "Try again" button.
+  To bring in many chapters at once from a source that gave you permission, use the importer: see [IMPORTER.md](IMPORTER.md).
 - `"sourceUrl": "https://official-site.example/..."` shows a "Read at the source" button instead.
 
 ## Add a blog post
