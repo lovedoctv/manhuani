@@ -3,6 +3,7 @@ import Base from '../../../../layouts/Base.astro';
 import Breadcrumbs from '../../../../components/Breadcrumbs.astro';
 import {
   allSeries, type Series, type Chapter, seriesUrl, chapterUrl, chapterSlug, sortedChapters, formatDate, absoluteUrl,
+  chapterSubtitle,
 } from '../../../../lib/data';
 
 export async function getStaticPaths() {
@@ -23,6 +24,8 @@ const { series, chapter, prev, next, all } = Astro.props as {
 };
 const d = series.data;
 const name = `${d.title} Chapter ${chapter.number}`;
+const subtitle = chapterSubtitle(chapter);
+const sourceName = d.source?.name;
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'ComicIssue',
@@ -36,7 +39,7 @@ const jsonLd = {
 <Base title={name} description={`Read ${name} of the ${d.type} ${d.title}. Released ${formatDate(chapter.date)}.`} type="article" jsonLd={jsonLd}>
   <div class="container reader-wrap">
     <Breadcrumbs items={[{ name: d.title, href: seriesUrl(series.id) }, { name: `Chapter ${chapter.number}`, href: chapterUrl(series.id, chapter.number) }]} />
-    <h1 class="reader-title">{name}{chapter.title && <small> – {chapter.title}</small>}</h1>
+    <h1 class="reader-title">{name}{subtitle && <small> – {subtitle}</small>}</h1>
     <p class="muted center">Released <time datetime={chapter.date.toISOString()}>{formatDate(chapter.date)}</time></p>
 
     <nav class="reader-nav" aria-label="Chapter navigation">
@@ -52,8 +55,8 @@ const jsonLd = {
         chapter.images.map((src, i) => <img src={src} alt={`${name} page ${i + 1}`} loading={i < 2 ? 'eager' : 'lazy'} decoding="async" />)
       ) : chapter.sourceUrl ? (
         <div class="reader-empty">
-          <p>This chapter is available from its official source.</p>
-          <a class="btn" href={chapter.sourceUrl} rel="nofollow noopener" target="_blank">Read Chapter {chapter.number} at the source</a>
+          <p>This chapter is published on {sourceName ?? 'another site'}.</p>
+          <a class="btn" href={chapter.sourceUrl} rel="nofollow noopener" target="_blank">Read Chapter {chapter.number} {sourceName ? `on ${sourceName}` : 'at the source'}</a>
         </div>
       ) : (
         <div class="reader-empty">

@@ -47,6 +47,11 @@ const via = (source?: string, credit?: string | null) => [source, credit].filter
 
 const BASE = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+/** The chapter's own title, or '' when it only repeats "Chapter N". */
+const subtitle = (c: { number: number; title?: string | null }) => {
+  const t = c.title?.trim();
+  return t && t.toLowerCase() !== `chapter ${c.number}` ? t : '';
+};
 const safeUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : '#');
 /** Images you uploaded (covers and pages), as written by the dashboard. */
 const MEDIA = /^data\/media\/[a-f0-9]{24}\.(jpg|png|webp|gif)$/;
@@ -122,7 +127,7 @@ async function liveSeriesChapters() {
   for (const c of fresh) {
     const li = document.createElement('li');
     li.dataset.n = String(c.number);
-    li.innerHTML = `<a ${chapterLink(c.titleSlug, c.number, c.sourceUrl)}><span>Chapter ${c.number}${c.title ? ' – ' + esc(c.title) : ''} <em class="new-badge">NEW</em>${c.source || c.credit ? ` <small class="live-credit">via ${via(c.source, c.credit)}</small>` : ''}</span><time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></a>`;
+    li.innerHTML = `<a ${chapterLink(c.titleSlug, c.number, c.sourceUrl)}><span>Chapter ${c.number}${subtitle(c) ? ' – ' + esc(subtitle(c)) : ''} <em class="new-badge">NEW</em>${c.source || c.credit ? ` <small class="live-credit">via ${via(c.source, c.credit)}</small>` : ''}</span><time class="ago" datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time></a>`;
     list.prepend(li);
   }
 }
@@ -386,7 +391,7 @@ function chapterList(panel: HTMLElement, t: TitleDetail, latest?: LiveChapter) {
       const who = groupOf(c);
       return `<li class="cx-ch${read.has(String(c.number)) ? ' read' : ''}">
         <a href="${esc(chapterHref(t.slug, c.number, c.id))}">
-          <b>Ch.${c.number}${c.title ? ` <span class="cx-title">– ${esc(c.title)}</span>` : ''}${c === latest ? ' <em class="new-badge">Latest</em>' : ''}</b>
+          <b>Ch.${c.number}${subtitle(c) ? ` <span class="cx-title">– ${esc(subtitle(c))}</span>` : ''}${c === latest ? ' <em class="new-badge">Latest</em>' : ''}</b>
           <span class="cx-meta">${who ? `${USER_ICON}<span>${esc(who)}</span><i>·</i>` : ''}${ago(c.date)}${note ? `<i>·</i><span>${note}</span>` : ''}</span>
         </a>
         <button type="button" class="ch-mark" data-key="${esc(key)}" data-n="${c.number}" data-g="${esc(who)}" aria-pressed="${isMarked(t.slug, key)}" aria-label="Bookmark chapter ${c.number}">${MARK_ICON}</button>
@@ -496,7 +501,7 @@ async function liveChapterPage() {
   root.innerHTML = `
 <div class="container reader-wrap">
   <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="${BASE}">Home</a></li><li><a href="${esc(seriesHref)}">${esc(t.title)}</a></li><li><span>Chapter ${c.number}</span></li></ol></nav>
-  <h1 class="reader-title">${esc(name)}${c.title ? `<small> – ${esc(c.title)}</small>` : ''}</h1>
+  <h1 class="reader-title">${esc(name)}${subtitle(c) ? `<small> – ${esc(subtitle(c))}</small>` : ''}</h1>
   <p class="muted center">Released <time datetime="${esc(c.date)}">${new Date(c.date).toLocaleDateString()}</time>${from ? ` · Source: <strong>${from}</strong>` : ''}${pages.length ? ` · ${pages.length} pages` : ''}</p>
   <p class="center reader-tools">${pages.length && original ? visit('btn btn-ghost') : ''}<button type="button" class="btn btn-ghost ch-mark-btn" aria-pressed="${isMarked(t.slug, key)}"></button></p>
   ${here.length > 1 ? `<p class="center releases">Also released by: ${here.filter((x) => x !== c).map((x) => `<a href="${esc(chapterHref(t.slug, x.number, x.id))}">${esc(groupOf(x) || 'another source')}</a>`).join(' · ')}</p>` : ''}
