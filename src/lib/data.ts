@@ -20,6 +20,12 @@ export const genreUrl = (slug: string) => url(`/manga-genre/${slug}/`);
 export const yearUrl = (y: number) => url(`/manga-release/${y}/`);
 export const chapterSlug = (n: number) => String(n).replace('.', '-');
 
+/** The chapter's own title, or undefined when it only repeats "Chapter N". */
+export const chapterSubtitle = (c: Chapter) => {
+  const t = c.title?.trim();
+  return t && t.toLowerCase() !== `chapter ${c.number}` ? t : undefined;
+};
+
 export const coverUrl = (s: Series) => url(s.data.cover ?? `/covers/${s.id}.svg`);
 
 export const genreName = (slug: string) =>

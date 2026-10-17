@@ -6,7 +6,7 @@ import Rating from '../../../components/Rating.astro';
 import SeriesGrid from '../../../components/SeriesGrid.astro';
 import {
   allSeries, type Series, seriesUrl, chapterUrl, coverUrl, sortedChapters, genreName, genreUrl,
-  yearUrl, formatDate, statusLabel, absoluteUrl,
+  yearUrl, formatDate, statusLabel, absoluteUrl, chapterSubtitle,
 } from '../../../lib/data';
 import site from '../../../../site.config.mjs';
 
@@ -84,7 +84,7 @@ const jsonLd = {
         {chapters.map((c) => (
           <li data-n={c.number}>
             <a href={chapterUrl(series.id, c.number)}>
-              <span>Chapter {c.number}{c.title && ` – ${c.title}`}</span>
+              <span>Chapter {c.number}{chapterSubtitle(c) && ` – ${chapterSubtitle(c)}`}</span>
               <time class="ago" datetime={c.date.toISOString()}>{formatDate(c.date)}</time>
             </a>
           </li>
