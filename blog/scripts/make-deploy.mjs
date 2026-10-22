@@ -1,7 +1,7 @@
 // Copies the finished blog build (blog/dist/) into deploy/, the folder cPanel copies to the site folder.
 // deploy/ only ever contains website files: no source code, .git, .env or node_modules.
 // The crawler dashboard in public/admin/ (and its public/data/ folder) is copied along with it,
-// so the dashboard keeps working at /manhuani/admin/.
+// so the dashboard keeps working at /AbroadPath/admin/.
 import fs from 'node:fs';
 import path from 'node:path';
 import site from '../site.config.mjs';
@@ -22,7 +22,7 @@ for (const dir of ['admin', 'data']) {
   if (fs.existsSync(from)) fs.cpSync(from, path.join(deploy, dir), { recursive: true });
 }
 
-// Fill in the site folder in .htaccess (e.g. /manhuani/).
+// Fill in the site folder in .htaccess (e.g. /AbroadPath/).
 const base = site.base ? `${site.base.replace(/\/$/, '')}/` : '/';
 const htaccess = path.join(deploy, '.htaccess');
 fs.writeFileSync(htaccess, fs.readFileSync(htaccess, 'utf8').replaceAll('__BASE__', base));

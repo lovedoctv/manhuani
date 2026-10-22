@@ -4,7 +4,7 @@ import site from './site.config.mjs';
 const base = site.base ? `${site.base.replace(/\/$/, '')}/` : '/';
 
 // Posts are written with site links like (/category/scholarships/).
-// This adds the base folder to them, e.g. /manhuani/category/scholarships/.
+// This adds the base folder to them, e.g. /AbroadPath/category/scholarships/.
 function rehypeBaseLinks() {
   const walk = (node) => {
     if (node.type === 'element') {

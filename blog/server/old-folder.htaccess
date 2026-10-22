@@ -1,0 +1,14 @@
+# Sends every visit to the site's old folders to the same page under /AbroadPath/.
+# .cpanel.yml copies this file into $HOME/aduna.fit/manhuani/ (the site's first address) and
+# $HOME/aduna.fit/abroadpath/ (for people who type the address in lowercase).
+# It is not part of the website itself, so it isn't in deploy/.
+# If the site moves again, change /AbroadPath/ here to match base in blog/site.config.mjs.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Never serve hidden files such as .git or .env.
+  RewriteRule (^|/)\.(?!well-known/) - [F]
+  RewriteRule ^(.*)$ /AbroadPath/$1 [R=301,L]
+</IfModule>

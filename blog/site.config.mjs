@@ -4,8 +4,9 @@ export default {
   // Your live domain, with https:// and no trailing slash.
   url: 'https://aduna.fit',
   // The folder the site lives in on that domain ('' for the domain root).
-  // https://aduna.fit/manhuani/  ->  '/manhuani'
-  base: '/manhuani',
+  // https://aduna.fit/AbroadPath/  ->  '/AbroadPath'
+  // If you change it, also change DEPLOYPATH in .cpanel.yml and the address in blog/server/old-folder.htaccess.
+  base: '/AbroadPath',
   name: 'AbroadPath',
   tagline: 'Scholarships, study abroad and work visas for Africans',
   description:

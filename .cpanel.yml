@@ -7,11 +7,19 @@
 # DEPLOYPATH is the folder the site is served from, ending with a slash.
 # $HOME is your cPanel home folder (for example /home/yourcpaneluser).
 # aduna.fit is an addon domain whose document root is $HOME/aduna.fit
-# (see cPanel > Domains > Document Root), so https://aduna.fit/manhuani/
-# is served from $HOME/aduna.fit/manhuani/. Only this folder is touched.
+# (see cPanel > Domains > Document Root), so https://aduna.fit/AbroadPath/
+# is served from $HOME/aduna.fit/AbroadPath/.
+#
+# The site used to live at https://aduna.fit/manhuani/. The last two tasks put a small
+# redirect file (blog/server/old-folder.htaccess) in that old folder and in a lowercase
+# abroadpath folder, so old links and typed addresses land on the same page under /AbroadPath/.
+# Nothing else outside DEPLOYPATH is touched.
 deployment:
   tasks:
-    - export DEPLOYPATH=$HOME/aduna.fit/manhuani/
+    - export DEPLOYPATH=$HOME/aduna.fit/AbroadPath/
     - /bin/test -f deploy/index.html
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R deploy/. $DEPLOYPATH
+    - /bin/mkdir -p $HOME/aduna.fit/manhuani $HOME/aduna.fit/abroadpath
+    - /bin/cp blog/server/old-folder.htaccess $HOME/aduna.fit/manhuani/.htaccess
+    - /bin/cp blog/server/old-folder.htaccess $HOME/aduna.fit/abroadpath/.htaccess

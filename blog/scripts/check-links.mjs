@@ -12,7 +12,7 @@ const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).forEach((e) => {
 });
 walk(root);
 
-// Every internal link must start with the base folder (e.g. /manhuani/) and point to a real file.
+// Every internal link must start with the base folder (e.g. /AbroadPath/) and point to a real file.
 const exists = (url) => {
   if (!url.startsWith(base)) return false;
   const clean = decodeURIComponent(url.slice(base.length - 1).split(/[?#]/)[0]);
