@@ -2,6 +2,9 @@
 import { url, countryUrl, categoryUrl } from '../lib/site';
 import site from '../../site.config.mjs';
 const social = Object.entries(site.social).filter(([, link]) => link);
+// The visitor counter goes straight into the page (not added later by a script) because its code
+// draws the badge next to its own script tag.
+const counter = site.counter?.trim();
 const labels: Record<string, string> = {
   facebook: 'Facebook', tiktok: 'TikTok', instagram: 'Instagram', whatsappChannel: 'WhatsApp Channel', telegram: 'Telegram',
 };
@@ -34,5 +37,6 @@ const labels: Record<string, string> = {
   </div>
   <div class="container footer-bottom">
     <p class="muted small">© {new Date().getFullYear()} {site.name}. We don't sell visas, admissions or jobs. Apply only through the official links in each guide.</p>
+    {counter && <div class="site-counter" set:html={counter} />}
   </div>
 </footer>
