@@ -1,0 +1,16 @@
+---
+import TextPage from '../components/TextPage.astro';
+import { url } from '../lib/site';
+import site from '../../site.config.mjs';
+---
+<TextPage title="Disclaimer" path={url('/disclaimer/')} description={`Disclaimer and affiliate disclosure for ${site.name}.`}>
+  <h2>Not an official source</h2>
+  <p>{site.name} is an independent website. We aren't connected to any government, embassy, university or scholarship body, and we can't influence any application. The official links in each guide are the authority.</p>
+  <h2>Accuracy</h2>
+  <p>Each guide shows the date its facts were checked. We correct mistakes as soon as we find them, but we can't guarantee that every detail is still current when you read it.</p>
+  <h2>Affiliate disclosure</h2>
+  <p>Some links on {site.name} are affiliate links. If you sign up or buy through them, we may earn a commission at no extra cost to you. We only recommend services that fit the guide they appear in.</p>
+  <h2>Advertising</h2>
+  <p>Ads on the site are served by third-party networks. An ad appearing here isn't an endorsement.</p>
+  <p>See also our <a href={url('/privacy/')}>privacy policy</a> and <a href={url('/terms/')}>terms of use</a>.</p>
+</TextPage>

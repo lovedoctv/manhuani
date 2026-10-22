@@ -1,0 +1,19 @@
+---
+import { postUrl, formatDate, daysLeft, type Post } from '../lib/site';
+interface Props { posts: Post[] }
+const { posts } = Astro.props;
+const label = (n: number) => (n === 0 ? 'Closes today' : n === 1 ? '1 day left' : `${n} days left`);
+---
+<ol class="deadline-list">
+  {posts.map((p) => {
+    const left = daysLeft(p.data.deadline!);
+    return (
+      <li data-deadline={p.data.deadline!.toISOString()}>
+        <a href={postUrl(p.id)}>{p.data.title}</a>
+        <span class:list={['deadline-pill', { soon: left <= 14 }]}>
+          <time datetime={p.data.deadline!.toISOString()}>{formatDate(p.data.deadline!)}</time> · <span data-days-left>{label(left)}</span>
+        </span>
+      </li>
+    );
+  })}
+</ol>

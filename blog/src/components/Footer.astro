@@ -1,0 +1,38 @@
+---
+import { url, countryUrl, categoryUrl } from '../lib/site';
+import site from '../../site.config.mjs';
+const social = Object.entries(site.social).filter(([, link]) => link);
+const labels: Record<string, string> = {
+  facebook: 'Facebook', tiktok: 'TikTok', instagram: 'Instagram', whatsappChannel: 'WhatsApp Channel', telegram: 'Telegram',
+};
+---
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <p class="footer-name">{site.name}</p>
+      <p class="muted small">{site.tagline}. Every guide links to the official page, so you can check the details before you apply.</p>
+      {social.length > 0 && (
+        <p class="footer-social">{social.map(([key, link]) => <a href={link} target="_blank" rel="noopener">{labels[key] ?? key}</a>)}</p>
+      )}
+    </div>
+    <nav aria-label="Countries">
+      <p class="footer-head">Countries</p>
+      {site.countries.map((c) => <a href={countryUrl(c.slug)}>{c.flag} {c.name}</a>)}
+    </nav>
+    <nav aria-label="Categories">
+      <p class="footer-head">Topics</p>
+      {site.categories.map((c) => <a href={categoryUrl(c.slug)}>{c.name}</a>)}
+    </nav>
+    <nav aria-label="Site">
+      <p class="footer-head">Site</p>
+      <a href={url('/about/')}>About</a>
+      <a href={url('/contact/')}>Contact</a>
+      <a href={url('/privacy/')}>Privacy Policy</a>
+      <a href={url('/terms/')}>Terms of Use</a>
+      <a href={url('/disclaimer/')}>Disclaimer</a>
+    </nav>
+  </div>
+  <div class="container footer-bottom">
+    <p class="muted small">© {new Date().getFullYear()} {site.name}. We don't sell visas, admissions or jobs. Apply only through the official links in each guide.</p>
+  </div>
+</footer>

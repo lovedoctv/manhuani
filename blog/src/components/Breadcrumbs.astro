@@ -1,0 +1,16 @@
+---
+import { url, absoluteUrl } from '../lib/site';
+interface Props { items: { name: string; href: string }[] }
+const items = [{ name: 'Home', href: url('/') }, ...Astro.props.items];
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, item: absoluteUrl(it.href) })),
+};
+---
+<nav class="breadcrumbs small" aria-label="Breadcrumb">
+  {items.map((it, i) => (
+    i < items.length - 1 ? <><a href={it.href}>{it.name}</a><span aria-hidden="true">›</span></> : <span aria-current="page">{it.name}</span>
+  ))}
+</nav>
+<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />

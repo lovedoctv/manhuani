@@ -1,0 +1,14 @@
+---
+import ArchivePage from '../../components/ArchivePage.astro';
+import { url, allPosts, paginate } from '../../lib/site';
+const pages = paginate(await allPosts());
+---
+<ArchivePage
+  title="All guides"
+  intro="Every scholarship, study abroad, work visa and jobs abroad guide, newest first."
+  crumbs={[{ name: 'All guides', href: url('/blog/') }]}
+  posts={pages[0]}
+  page={1}
+  total={pages.length}
+  pageUrl={(n) => url(n === 1 ? '/blog/' : `/blog/page/${n}/`)}
+/>

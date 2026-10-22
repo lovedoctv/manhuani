@@ -15,7 +15,12 @@ ErrorDocument 404 /manhuani/404.html
   # RewriteCond %{HTTP:X-Forwarded-Proto} !https
   # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-  # /manga/some-series  ->  /manga/some-series/  (every page is a folder with index.html)
+  # The site used to be a manhwa site. Its old pages may still be on the server
+  # (deploys copy files but never delete), so send those addresses to the home page.
+  RewriteRule ^(manga|manga-genre|manga-release|chapter|title|new-titles|bookmarks|covers|page|copyright|dmca)(/.*)?$ /manhuani/ [R=301,L]
+  RewriteRule ^blog/(welcome-to-manhuani|best-cultivation-manhua-for-beginners)/?$ /manhuani/blog/ [R=301,L]
+
+  # /blog/some-post  ->  /blog/some-post/  (every page is a folder with index.html)
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME}/index.html -f
   RewriteRule ^(.*[^/])$ $1/ [L,R=301]

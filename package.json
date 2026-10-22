@@ -4,10 +4,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build && node scripts/make-deploy.mjs",
-    "preview": "node scripts/serve.mjs",
-    "check": "node scripts/check-links.mjs",
+    "dev": "astro dev --root blog",
+    "build": "astro build --root blog && node blog/scripts/make-deploy.mjs",
+    "preview": "node blog/scripts/serve.mjs",
+    "check": "node blog/scripts/check-links.mjs",
+    "dev:manhwa": "astro dev",
+    "build:manhwa": "astro build && node scripts/make-deploy.mjs",
+    "check:manhwa": "node scripts/check-links.mjs",
+    "preview:manhwa": "node scripts/serve.mjs",
     "crawler": "node scripts/crawler/cli.mjs",
     "test": "node --test scripts/crawler/test/*.test.mjs"
   },

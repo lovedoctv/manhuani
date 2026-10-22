@@ -1,0 +1,11 @@
+---
+interface Props { page: number; total: number; pageUrl: (n: number) => string }
+const { page, total, pageUrl } = Astro.props;
+---
+{total > 1 && (
+  <nav class="pagination" aria-label="Pages">
+    {page > 1 && <a href={pageUrl(page - 1)} rel="prev">← Newer</a>}
+    <span class="muted small">Page {page} of {total}</span>
+    {page < total && <a href={pageUrl(page + 1)} rel="next">Older →</a>}
+  </nav>
+)}

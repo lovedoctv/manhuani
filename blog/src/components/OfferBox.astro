@@ -1,0 +1,18 @@
+---
+// "Recommended" box for the CPA offers in site.config.mjs that match this post's category.
+// {source}, {campaign} and {post} in the link are filled in by scripts/site.ts from the visit's UTM tags.
+import { offersFor } from '../lib/site';
+interface Props { category: string; post: string }
+const { category, post } = Astro.props;
+const offers = offersFor(category);
+// Fallback values for visitors without JavaScript.
+const fill = (link: string) => link.replaceAll('{source}', 'direct').replaceAll('{campaign}', 'none').replaceAll('{post}', post);
+---
+{offers.map((o) => (
+  <aside class="offer-box">
+    <p class="offer-label">Recommended</p>
+    <p class="offer-title">{o.title}</p>
+    <p class="offer-text">{o.text}</p>
+    <a class="btn btn-accent" href={fill(o.url)} data-offer={o.id} data-href={o.url} data-post={post} target="_blank" rel="sponsored nofollow noopener">{o.cta}</a>
+  </aside>
+))}

@@ -1,0 +1,20 @@
+---
+import TextPage from '../components/TextPage.astro';
+import { url } from '../lib/site';
+import site from '../../site.config.mjs';
+const names = site.countries.map((c) => c.demonym);
+const list = `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+---
+<TextPage title="About us" path={url('/about/')} description={`What ${site.name} is and how we check our guides.`}>
+  <p>{site.name} helps {list} find scholarships, study abroad options and work visa routes, explained in plain English.</p>
+  <h2>How we write our guides</h2>
+  <ul>
+    <li>Every guide links to the official page of the scholarship, university or government department.</li>
+    <li>Each guide shows the date its facts were last checked. Deadlines, fees and rules change, so always confirm on the official page before you apply.</li>
+    <li>We say clearly when a route has closed or changed.</li>
+  </ul>
+  <h2>What we don't do</h2>
+  <p>We don't process visas, sell admissions or recruit for jobs, and we never ask readers for money to apply. Scholarship and visa applications go through the official websites linked in each guide.</p>
+  <h2>How the site is funded</h2>
+  <p>{site.name} is free to read. It's funded by advertising and by some affiliate links, which may pay us a commission if you sign up, at no extra cost to you. See our <a href={url('/disclaimer/')}>disclaimer</a> for details.</p>
+</TextPage>

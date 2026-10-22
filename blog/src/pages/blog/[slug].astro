@@ -1,0 +1,94 @@
+---
+import Base from '../../layouts/Base.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import PostCard from '../../components/PostCard.astro';
+import OfferBox from '../../components/OfferBox.astro';
+import ShareBar from '../../components/ShareBar.astro';
+import AdSlot from '../../components/AdSlot.astro';
+import {
+  url, absoluteUrl, postUrl, categoryUrl, countryUrl, category, country, formatDate, daysLeft, allPosts, relatedPosts, type Post,
+} from '../../lib/site';
+import site from '../../../site.config.mjs';
+
+export async function getStaticPaths() {
+  return (await allPosts()).map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+const { post } = Astro.props as { post: Post };
+// The post's HTML, with each in-article ad marker replaced by its code (or removed while the slot is empty).
+const body = (post.rendered?.html ?? '').replace(/<div data-ad-slot="(\w+)"><\/div>/g, (_, name: keyof typeof site.ads) => {
+  const code = site.ads[name]?.trim();
+  return code ? `<div class="ad-slot ad-${name}">${code}</div>` : '';
+});
+const d = post.data;
+const cat = category(d.category);
+const related = await relatedPosts(post);
+const link = absoluteUrl(postUrl(post.id));
+const left = d.deadline ? daysLeft(d.deadline) : undefined;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: d.title,
+  description: d.description,
+  datePublished: d.date.toISOString(),
+  dateModified: (d.updated ?? d.checked).toISOString(),
+  mainEntityOfPage: link,
+  author: { '@type': 'Organization', name: site.name },
+  publisher: { '@type': 'Organization', name: site.name },
+};
+---
+<Base title={d.title} description={d.description} type="article" image={d.cover && url(d.cover)} jsonLd={jsonLd}>
+  <div class="container narrow block">
+    <Breadcrumbs items={[{ name: cat.name, href: categoryUrl(cat.slug) }, { name: d.title, href: postUrl(post.id) }]} />
+    <article class="prose" data-post={post.id} data-category={d.category}>
+      <p class="card-meta"><a class="cat-label" href={categoryUrl(cat.slug)}>{cat.name}</a></p>
+      <h1>{d.title}</h1>
+      <p class="post-meta small muted">
+        Updated <time datetime={(d.updated ?? d.date).toISOString()}>{formatDate(d.updated ?? d.date)}</time>
+        · Facts checked <time datetime={d.checked.toISOString()}>{formatDate(d.checked)}</time>
+      </p>
+      {d.countries.length > 0 && (
+        <p class="country-chips">
+          {d.countries.map((c) => <a href={countryUrl(c)}>{country(c).flag} {country(c).name}</a>)}
+        </p>
+      )}
+
+      {(d.facts.length > 0 || d.deadline || d.official) && (
+        <div class="facts-box">
+          <dl>
+            {d.facts.map((f) => (<><dt>{f.label}</dt><dd>{f.value}</dd></>))}
+            {d.deadline && (
+              <>
+                <dt>Deadline</dt>
+                <dd>
+                  <time datetime={d.deadline.toISOString()}>{formatDate(d.deadline)}</time>
+                  {left !== undefined && (
+                    <span class:list={['deadline-pill', { soon: left >= 0 && left <= 14, closed: left < 0 }]} data-deadline={d.deadline.toISOString()}>
+                      <span data-days-left>{left < 0 ? 'Closed' : left === 0 ? 'Closes today' : left === 1 ? '1 day left' : `${left} days left`}</span>
+                    </span>
+                  )}
+                </dd>
+              </>
+            )}
+          </dl>
+          {d.official && (
+            <a class="btn btn-primary" href={d.official.url} target="_blank" rel="noopener" data-official>Official page: {d.official.name}</a>
+          )}
+        </div>
+      )}
+
+      <div class="post-body" set:html={body} />
+
+      <OfferBox category={d.category} post={post.id} />
+      <ShareBar title={d.title} link={link} />
+    </article>
+    <AdSlot name="afterArticle" />
+  </div>
+
+  {related.length > 0 && (
+    <section class="container block">
+      <h2 class="section-title">Read next</h2>
+      <div class="post-grid">{related.map((p) => <PostCard post={p} />)}</div>
+    </section>
+  )}
+</Base>

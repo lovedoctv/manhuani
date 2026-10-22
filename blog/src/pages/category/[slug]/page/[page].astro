@@ -1,0 +1,26 @@
+---
+import ArchivePage from '../../../../components/ArchivePage.astro';
+import { categoryUrl, allPosts, paginate, type Post } from '../../../../lib/site';
+import site from '../../../../../site.config.mjs';
+
+export async function getStaticPaths() {
+  const posts = await allPosts();
+  return site.categories.flatMap((cat) => {
+    const pages = paginate(posts.filter((p) => p.data.category === cat.slug));
+    return pages.slice(1).map((list, i) => ({
+      params: { slug: cat.slug, page: String(i + 2) },
+      props: { cat, posts: list, total: pages.length },
+    }));
+  });
+}
+const { cat, posts, total } = Astro.props as { cat: (typeof site.categories)[number]; posts: Post[]; total: number };
+---
+<ArchivePage
+  title={cat.name}
+  intro={cat.blurb}
+  crumbs={[{ name: cat.name, href: categoryUrl(cat.slug) }]}
+  posts={posts}
+  page={Number(Astro.params.page)}
+  total={total}
+  pageUrl={(n) => (n === 1 ? categoryUrl(cat.slug) : `${categoryUrl(cat.slug)}page/${n}/`)}
+/>

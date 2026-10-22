@@ -1,0 +1,25 @@
+---
+import { postUrl, categoryUrl, category, formatDate, daysLeft, type Post } from '../lib/site';
+import site from '../../site.config.mjs';
+interface Props { post: Post }
+const { post } = Astro.props;
+const d = post.data;
+const cat = category(d.category);
+const flags = d.countries.map((c) => site.countries.find((x) => x.slug === c)?.flag).join(' ');
+const left = d.deadline ? daysLeft(d.deadline) : undefined;
+---
+<article class="post-card">
+  <p class="card-meta">
+    <a class="cat-label" href={categoryUrl(cat.slug)}>{cat.name}</a>
+    {flags && <span aria-hidden="true">{flags}</span>}
+  </p>
+  <h3><a href={postUrl(post.id)}>{d.title}</a></h3>
+  <p class="muted">{d.description}</p>
+  <p class="card-foot small">
+    {left !== undefined && left >= 0 ? (
+      <span class:list={['deadline-pill', { soon: left <= 14 }]}>Deadline {formatDate(d.deadline!)}</span>
+    ) : (
+      <span class="muted">Updated {formatDate(d.updated ?? d.date)}</span>
+    )}
+  </p>
+</article>

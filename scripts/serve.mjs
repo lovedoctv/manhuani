@@ -15,7 +15,7 @@ const types = {
 };
 
 if (!fs.existsSync(root)) {
-  console.error('deploy/ not found. Run "npm run build" first.');
+  console.error('deploy/ not found. Run "npm run build:manhwa" first.');
   process.exit(1);
 }
 

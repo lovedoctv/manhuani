@@ -5,7 +5,13 @@ name: Build site
 on:
   push:
     branches: [main]
-    paths-ignore: ['deploy/**', '**.md']
+    # Blog posts are .md files, so only the root-level notes (README.md etc.), docs/ and
+    # deploy/ itself are skipped. Everything else, posts included, rebuilds the site.
+    paths:
+      - '**'
+      - '!deploy/**'
+      - '!docs/**'
+      - '!*.md'
   workflow_dispatch:
 
 permissions:

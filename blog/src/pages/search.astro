@@ -1,0 +1,20 @@
+---
+import Base from '../layouts/Base.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import { url } from '../lib/site';
+---
+<Base title="Search" description="Search scholarships, study abroad and work visa guides." noindex>
+  <div class="container narrow block">
+    <Breadcrumbs items={[{ name: 'Search', href: url('/search/') }]} />
+    <h1 class="page-title">Search</h1>
+    <form class="search-page-form" role="search">
+      <input type="search" name="q" placeholder="e.g. Chevening, Canada, nursing, Kenya" aria-label="Search the site" />
+      <button class="btn btn-primary" type="submit">Search</button>
+    </form>
+    <p class="search-status muted small" aria-live="polite"></p>
+    <div class="post-grid search-results" data-index={url('/search.json')}></div>
+  </div>
+  <script>
+    import '../scripts/search.ts';
+  </script>
+</Base>

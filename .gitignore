@@ -30,3 +30,7 @@ public/data/media/
 # Series importer (npm run crawler): run logs and half-finished downloads stay local
 /crawler/logs/
 /crawler/.staging/
+
+# Jobs and scholarships blog (npm run build builds blog/)
+/blog/dist/
+/blog/.astro/

@@ -1,0 +1,17 @@
+---
+import TextPage from '../components/TextPage.astro';
+import { url } from '../lib/site';
+import site from '../../site.config.mjs';
+---
+<TextPage title="Terms of Use" path={url('/terms/')} description={`The terms for using ${site.name}.`}>
+  <p class="muted small">Last updated: October 2026</p>
+  <p>By using {site.name} you agree to these terms.</p>
+  <h2>Information only</h2>
+  <p>Our guides are general information, not legal, immigration or financial advice. Programmes, deadlines, fees and rules change, sometimes without notice. Check every detail on the official page before you apply or pay for anything.</p>
+  <h2>Outside websites</h2>
+  <p>We link to official sites and to partners. We don't control those sites and aren't responsible for their content, services or decisions.</p>
+  <h2>Our content</h2>
+  <p>You may share links to our guides freely. Please don't copy whole guides to other websites without permission.</p>
+  <h2>Changes</h2>
+  <p>We may update these terms. The date above shows when they last changed.</p>
+</TextPage>
