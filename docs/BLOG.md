@@ -85,9 +85,9 @@ which campaign sent the visitor:
 ### Monetag's sw.js
 
 `blog/public/sw.js` is the file Monetag gave to verify the site and to run MultiTag and push ads. It is
-served at `https://aduna.fit/AbroadPath/sw.js`. Monetag also looks for it at the domain root,
-`https://aduna.fit/sw.js`, so upload the same file once to the `aduna.fit` folder in cPanel File Manager.
-Don't delete either copy, or Monetag stops serving. If Monetag gives you a new one, replace both.
+served at `https://aduna.fit/AbroadPath/sw.js`, and each deploy also copies it to the domain root,
+`https://aduna.fit/sw.js`, which is where Monetag looks for it. Don't delete either copy, or Monetag
+stops serving. If Monetag gives you a new one, replace this file and deploy.
 
 ### ads.txt
 

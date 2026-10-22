@@ -10,10 +10,11 @@
 # (see cPanel > Domains > Document Root), so https://aduna.fit/AbroadPath/
 # is served from $HOME/aduna.fit/AbroadPath/.
 #
-# The site used to live at https://aduna.fit/manhuani/. The last two tasks put a small
+# The site used to live at https://aduna.fit/manhuani/. Two of the tasks below put a small
 # redirect file (blog/server/old-folder.htaccess) in that old folder and in a lowercase
 # abroadpath folder, so old links and typed addresses land on the same page under /AbroadPath/.
-# Nothing else outside DEPLOYPATH is touched.
+# The last task copies Monetag's sw.js to the domain root (https://aduna.fit/sw.js), where Monetag
+# looks for it to verify the site and run its ads. Nothing else outside DEPLOYPATH is touched.
 deployment:
   tasks:
     - export DEPLOYPATH=$HOME/aduna.fit/AbroadPath/
@@ -23,3 +24,4 @@ deployment:
     - /bin/mkdir -p $HOME/aduna.fit/manhuani $HOME/aduna.fit/abroadpath
     - /bin/cp blog/server/old-folder.htaccess $HOME/aduna.fit/manhuani/.htaccess
     - /bin/cp blog/server/old-folder.htaccess $HOME/aduna.fit/abroadpath/.htaccess
+    - /bin/cp deploy/sw.js $HOME/aduna.fit/sw.js
