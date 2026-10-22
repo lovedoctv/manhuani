@@ -82,6 +82,12 @@ which campaign sent the visitor:
 - Meta: `?utm_source=facebook&utm_campaign={{campaign.name}}`
 - TikTok: `?utm_source=tiktok&utm_campaign=__CAMPAIGN_NAME__`
 
+### Monetag's sw.js
+
+`blog/public/sw.js` is the file Monetag gave to verify the site and to run MultiTag and push ads. It is
+served at `https://aduna.fit/manhuani/sw.js`. Don't delete it, or Monetag stops serving. If Monetag gives
+you a new one, replace this file with it.
+
 ### ads.txt
 
 If a network asks for an `ads.txt` file, it must sit at `https://aduna.fit/ads.txt`, which is the
