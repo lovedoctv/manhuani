@@ -46,7 +46,9 @@ export default {
     bodyEnd: `<!-- Monetag In-Page Push, zone 12100047 -->
 <script>(function(s){s.dataset.zone='12100047',s.src='https://ueuee.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 <!-- Monetag Vignette Banner, zone 12100049 -->
-<script>(function(s){s.dataset.zone='12100049',s.src='https://dd133.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>`,
+<script>(function(s){s.dataset.zone='12100049',s.src='https://dd133.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+<!-- Monetag Push Notifications, zone 12100055 (uses the sw.js at https://aduna.fit/sw.js) -->
+<script src="https://5gvci.com/act/files/tag.min.js?z=12100055" data-cfasync="false" async></script>`,
     // A banner under the menu on every page.
     belowHeader: ``,
     // Inside each post, after the 2nd paragraph (a native or 300x250 banner works well).
