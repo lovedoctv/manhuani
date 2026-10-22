@@ -1,6 +1,6 @@
 # AbroadPath blog guide
 
-https://aduna.fit/manhuani/ is now **AbroadPath**: scholarships, study abroad and work visa guides for
+https://aduna.fit/AbroadPath/ is **AbroadPath**: scholarships, study abroad and work visa guides for
 Nigeria, South Africa, Kenya, Ghana, Zimbabwe and Zambia. It earns from Adsterra or Monetag ad codes
 and CPA offers, with traffic from Meta and TikTok ads.
 
@@ -24,7 +24,7 @@ the crawler). `npm run build:manhwa`, `npm run dev:manhwa` and `npm run check:ma
 
 ## Add a post
 
-Create `blog/src/content/posts/<slug>.md`. The file name becomes the URL: `/manhuani/blog/<slug>/`.
+Create `blog/src/content/posts/<slug>.md`. The file name becomes the URL: `/AbroadPath/blog/<slug>/`.
 
 ```markdown
 ---
@@ -85,13 +85,14 @@ which campaign sent the visitor:
 ### Monetag's sw.js
 
 `blog/public/sw.js` is the file Monetag gave to verify the site and to run MultiTag and push ads. It is
-served at `https://aduna.fit/manhuani/sw.js`. Don't delete it, or Monetag stops serving. If Monetag gives
-you a new one, replace this file with it.
+served at `https://aduna.fit/AbroadPath/sw.js`. Monetag also looks for it at the domain root,
+`https://aduna.fit/sw.js`, so upload the same file once to the `aduna.fit` folder in cPanel File Manager.
+Don't delete either copy, or Monetag stops serving. If Monetag gives you a new one, replace both.
 
 ### ads.txt
 
 If a network asks for an `ads.txt` file, it must sit at `https://aduna.fit/ads.txt`, which is the
-`aduna.fit` folder in cPanel File Manager, not the `manhuani` folder. The deploy never touches
+`aduna.fit` folder in cPanel File Manager, not the `AbroadPath` folder. The deploy never touches
 that folder, so upload it there once with File Manager.
 
 ## CPA offers
@@ -123,8 +124,12 @@ Optimise for landing page views first, then for ViewContent or OfferClick once e
 
 ## What changed on the server
 
+- The site moved from `/manhuani/` to `/AbroadPath/`. Each deploy puts `blog/server/old-folder.htaccess`
+  into the old `manhuani` folder and a lowercase `abroadpath` folder, so old links and typed addresses
+  redirect to the same page under `/AbroadPath/`, keeping any `utm_` tags.
 - Old manhwa URLs (`/manhuani/manga/...`, `/manhuani/chapter/...` and the rest) redirect to the new
   home page through `.htaccess`. The old files stay on the server because the deploy only copies
   files and never deletes, which is harmless.
-- The crawler dashboard at `/manhuani/admin/` still deploys. If you don't need it any more, delete
-  its cron job in cPanel **Cron Jobs** so it stops calling MangaDex and the other APIs.
+- The crawler dashboard now deploys to `/AbroadPath/admin/`. Its cron job in cPanel **Cron Jobs** still
+  runs the old copy in `aduna.fit/manhuani/admin/`. If you don't need the crawler any more, delete that
+  cron job so it stops calling MangaDex and the other APIs.

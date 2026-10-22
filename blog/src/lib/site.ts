@@ -4,10 +4,10 @@ import site from '../../site.config.mjs';
 export type Post = CollectionEntry<'posts'>;
 export type Offer = { id: string; title: string; text: string; cta: string; url: string; categories: string[] };
 
-/** Base folder the site is served from, e.g. "/manhuani/" (always ends with "/"). */
+/** Base folder the site is served from, e.g. "/AbroadPath/" (always ends with "/"). */
 export const BASE = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 
-/** Turns a site path like "/blog/x/" into "/manhuani/blog/x/". Safe to call twice. */
+/** Turns a site path like "/blog/x/" into "/AbroadPath/blog/x/". Safe to call twice. */
 export const url = (path: string) => {
   if (/^[a-z]+:/i.test(path) || path.startsWith('//')) return path;
   if (path.startsWith(BASE)) return path;

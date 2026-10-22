@@ -1,7 +1,8 @@
 # Manhuani
 
-> **Now AbroadPath.** Since October 2026, https://aduna.fit/manhuani/ is a scholarships, study abroad and
-> work visa blog for Nigeria, South Africa, Kenya, Ghana, Zimbabwe and Zambia. Its code is in `blog/`, and
+> **Now AbroadPath.** Since October 2026, the site is a scholarships, study abroad and
+> work visa blog for Nigeria, South Africa, Kenya, Ghana, Zimbabwe and Zambia, at https://aduna.fit/AbroadPath/
+> (old /manhuani/ links redirect there). Its code is in `blog/`, and
 > `npm run dev`, `npm run build` and `npm run check` now work on it. Ad codes, offers and pixels go in
 > `blog/site.config.mjs`; see [docs/BLOG.md](docs/BLOG.md). The manhwa site below is kept as it was and
 > still builds with `npm run dev:manhwa`, `npm run build:manhwa` and `npm run check:manhwa`.
