@@ -1,5 +1,11 @@
 # Manhuani
 
+> **Now AbroadPath.** Since October 2026, https://aduna.fit/manhuani/ is a scholarships, study abroad and
+> work visa blog for Nigeria, South Africa, Kenya, Ghana, Zimbabwe and Zambia. Its code is in `blog/`, and
+> `npm run dev`, `npm run build` and `npm run check` now work on it. Ad codes, offers and pixels go in
+> `blog/site.config.mjs`; see [docs/BLOG.md](docs/BLOG.md). The manhwa site below is kept as it was and
+> still builds with `npm run dev:manhwa`, `npm run build:manhwa` and `npm run check:manhwa`.
+
 Live at **https://aduna.fit/manhuani/**. A fast, responsive manhua and manhwa blog. It's built as a **static site**, so it runs on any standard shared hosting (like Namecheap with cPanel) without a Node.js server.
 
 - Home page with Popular Series, Latest Updates (paginated) and a sidebar with search, Hot Series, genres and years

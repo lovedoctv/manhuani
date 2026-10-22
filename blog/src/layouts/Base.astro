@@ -1,0 +1,90 @@
+---
+import { url, absoluteUrl } from '../lib/site';
+import '../styles/global.css';
+import site from '../../site.config.mjs';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Pixels from '../components/Pixels.astro';
+import AdSlot from '../components/AdSlot.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  jsonLd?: object | object[];
+  noindex?: boolean;
+}
+
+const { title, description = site.description, image = url('/og-image.png'), type = 'website', jsonLd, noindex = false } = Astro.props;
+const fullTitle = title ? `${title} | ${site.name}` : `${site.name}: ${site.tagline}`;
+const canonical = new URL(Astro.url.pathname, site.url).toString();
+const ogImage = absoluteUrl(image);
+const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+const adHead = site.ads.head.trim();
+const adBodyEnd = site.ads.bodyEnd.trim();
+const quietSources = site.quietSources.map((s) => s.toLowerCase());
+---
+<!doctype html>
+<html lang={site.language}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    <meta name="theme-color" content="#0d6e5a" />
+    <link rel="icon" href={url('/favicon.svg')} type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title={site.name} href={url('/rss.xml')} />
+    <link rel="sitemap" href={url('/sitemap.xml')} />
+
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={title ?? fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title ?? fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    {ld.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj)} />)}
+    <Pixels />
+    {adHead && <Fragment set:html={adHead} />}
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Header />
+    <AdSlot name="belowHeader" />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    <script>
+      import '../scripts/site.ts';
+    </script>
+    {quietSources.length ? (
+      adBodyEnd && (
+        <>
+          {/* Held back until we know where the visitor came from: see quietSources in site.config.mjs. */}
+          <template id="ad-bodyEnd" set:html={adBodyEnd} />
+          <script is:inline define:vars={{ quietSources }}>
+            (() => {
+              let source = new URLSearchParams(location.search).get('utm_source');
+              try { source = source || sessionStorage.getItem('utm_source'); } catch {}
+              if (quietSources.includes((source || '').toLowerCase())) return;
+              const slot = document.createElement('div');
+              slot.className = 'ad-slot ad-bodyEnd';
+              slot.append(document.getElementById('ad-bodyEnd').content.cloneNode(true));
+              document.body.append(slot);
+            })();
+          </script>
+        </>
+      )
+    ) : (
+      <AdSlot name="bodyEnd" />
+    )}
+  </body>
+</html>

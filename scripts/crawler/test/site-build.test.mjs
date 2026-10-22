@@ -69,8 +69,9 @@ test('imported pages reach the built chapter pages, in order, under /manhuani/',
     assert.match(out.stdout, /importer-feed-comic from test-publisher\n {2}Discovered 2 · imported or updated 1 · unchanged 0 · no pages 1/);
     assert.equal(readJson(path.join(root, 'src/content/series/importer-test-comic.json')).chapters.length, 2);
 
-    await run('npm', ['run', 'build'], { cwd: root, maxBuffer: 64 * 1024 * 1024 });
-    const check = await run('npm', ['run', 'check'], { cwd: root });
+    // The comic pages belong to the manhwa site, which now builds with build:manhwa (npm run build is the blog).
+    await run('npm', ['run', 'build:manhwa'], { cwd: root, maxBuffer: 64 * 1024 * 1024 });
+    const check = await run('npm', ['run', 'check:manhwa'], { cwd: root });
     assert.match(check.stdout, /No broken links/);
 
     const ch1 = htmlOf(root, 'importer-test-comic', 1);

@@ -1,0 +1,76 @@
+---
+import Base from '../layouts/Base.astro';
+import PostCard from '../components/PostCard.astro';
+import DeadlineList from '../components/DeadlineList.astro';
+import AdSlot from '../components/AdSlot.astro';
+import { url, absoluteUrl, categoryUrl, countryUrl, allPosts, openDeadlines } from '../lib/site';
+import site from '../../site.config.mjs';
+
+const posts = await allPosts();
+const featured = posts.filter((p) => p.data.featured).slice(0, 3);
+const latest = posts.filter((p) => !featured.includes(p)).slice(0, 9);
+const deadlines = await openDeadlines(6);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: site.name,
+  url: absoluteUrl('/'),
+  description: site.description,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: { '@type': 'EntryPoint', urlTemplate: absoluteUrl('/search/') + '?q={search_term_string}' },
+    'query-input': 'required name=search_term_string',
+  },
+};
+---
+<Base jsonLd={jsonLd}>
+  <section class="hero">
+    <div class="container">
+      <h1>{site.tagline}</h1>
+      <p class="hero-sub">Fully funded scholarships, study permits and work visa routes, explained simply and checked against the official pages.</p>
+      <p class="country-chips">
+        {site.countries.map((c) => <a href={countryUrl(c.slug)}>{c.flag} {c.name}</a>)}
+      </p>
+    </div>
+  </section>
+
+  {deadlines.length > 0 && (
+    <section class="container block">
+      <div class="section-head">
+        <h2 class="section-title">Closing soon</h2>
+        <a href={url('/deadlines/')} class="small">All deadlines →</a>
+      </div>
+      <DeadlineList posts={deadlines} />
+    </section>
+  )}
+
+  {featured.length > 0 && (
+    <section class="container block">
+      <h2 class="section-title">Start here</h2>
+      <div class="post-grid">{featured.map((p) => <PostCard post={p} />)}</div>
+    </section>
+  )}
+
+  <div class="container"><AdSlot name="home" /></div>
+
+  <section class="container block">
+    <div class="section-head">
+      <h2 class="section-title">Latest guides</h2>
+      <a href={url('/blog/')} class="small">All guides →</a>
+    </div>
+    {latest.length ? <div class="post-grid">{latest.map((p) => <PostCard post={p} />)}</div> : <p class="empty">New guides are on the way.</p>}
+  </section>
+
+  <section class="container block">
+    <h2 class="section-title">Browse by topic</h2>
+    <div class="topic-grid">
+      {site.categories.map((c) => (
+        <a class="topic-tile" href={categoryUrl(c.slug)}>
+          <span class="topic-name">{c.name}</span>
+          <span class="muted small">{c.blurb}</span>
+        </a>
+      ))}
+    </div>
+  </section>
+</Base>

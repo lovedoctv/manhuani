@@ -1,0 +1,20 @@
+---
+import ArchivePage from '../../../components/ArchivePage.astro';
+import { url, allPosts, paginate, type Post } from '../../../lib/site';
+
+export async function getStaticPaths() {
+  const pages = paginate(await allPosts());
+  return pages.slice(1).map((posts, i) => ({ params: { page: String(i + 2) }, props: { posts, total: pages.length } }));
+}
+const { posts, total } = Astro.props as { posts: Post[]; total: number };
+const page = Number(Astro.params.page);
+---
+<ArchivePage
+  title="All guides"
+  intro="Every scholarship, study abroad, work visa and jobs abroad guide, newest first."
+  crumbs={[{ name: 'All guides', href: url('/blog/') }]}
+  posts={posts}
+  page={page}
+  total={total}
+  pageUrl={(n) => url(n === 1 ? '/blog/' : `/blog/page/${n}/`)}
+/>

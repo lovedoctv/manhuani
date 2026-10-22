@@ -1,7 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /manhuani/search/
-Disallow: /manhuani/bookmarks/
 Disallow: /manhuani/admin/
 
 Sitemap: https://aduna.fit/manhuani/sitemap.xml

@@ -1,0 +1,24 @@
+---
+import ArchivePage from '../../../components/ArchivePage.astro';
+import { countryUrl, allPosts, paginate, type Post } from '../../../lib/site';
+import site from '../../../../site.config.mjs';
+
+// A country page lists posts tagged with that country, plus posts open to everyone.
+export async function getStaticPaths() {
+  const posts = await allPosts();
+  return site.countries.map((c) => {
+    const pages = paginate(posts.filter((p) => !p.data.countries.length || p.data.countries.includes(c.slug)));
+    return { params: { slug: c.slug }, props: { c, posts: pages[0], total: pages.length } };
+  });
+}
+const { c, posts, total } = Astro.props as { c: (typeof site.countries)[number]; posts: Post[]; total: number };
+---
+<ArchivePage
+  title={`Scholarships and visas for ${c.demonym}`}
+  intro={`Scholarships, study abroad options and work visa routes that ${c.demonym} can apply for, with deadlines and official links.`}
+  crumbs={[{ name: `${c.flag} ${c.name}`, href: countryUrl(c.slug) }]}
+  posts={posts}
+  page={1}
+  total={total}
+  pageUrl={(n) => (n === 1 ? countryUrl(c.slug) : `${countryUrl(c.slug)}page/${n}/`)}
+/>

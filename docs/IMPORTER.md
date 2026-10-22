@@ -152,7 +152,7 @@ If a source needs a token, add one repository secret named `CRAWLER_SECRETS` und
 
 ## Check the result
 
-- `npm run build` then `npm run preview`, and open the chapter, for example `/manhuani/manga/my-series/chapter-1/`.
+- `npm run build:manhwa` then `npm run preview:manhwa`, and open the chapter, for example `/manhuani/manga/my-series/chapter-1/`.
 - `npm run test` runs the importer's tests. One of them imports test pages, builds the whole site and checks the chapter pages show those pages in order under `/manhuani/`. Set `SKIP_SITE_BUILD=1` to skip that one.
 
 ## Add another kind of source

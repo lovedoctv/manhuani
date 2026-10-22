@@ -1,0 +1,15 @@
+---
+// Share buttons. WhatsApp first, because that's where most of this audience shares.
+interface Props { title: string; link: string }
+const { title, link } = Astro.props;
+const text = encodeURIComponent(`${title} ${link}`);
+const u = encodeURIComponent(link);
+---
+<div class="share-bar" aria-label="Share this post">
+  <span class="small muted">Share:</span>
+  <a class="share whatsapp" href={`https://wa.me/?text=${text}`} target="_blank" rel="noopener">WhatsApp</a>
+  <a class="share facebook" href={`https://www.facebook.com/sharer/sharer.php?u=${u}`} target="_blank" rel="noopener">Facebook</a>
+  <a class="share telegram" href={`https://t.me/share/url?url=${u}&text=${encodeURIComponent(title)}`} target="_blank" rel="noopener">Telegram</a>
+  <a class="share x" href={`https://twitter.com/intent/tweet?url=${u}&text=${encodeURIComponent(title)}`} target="_blank" rel="noopener">X</a>
+  <button class="share copy" type="button" data-copy={link}>Copy link</button>
+</div>

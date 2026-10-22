@@ -1,0 +1,14 @@
+---
+import TextPage from '../components/TextPage.astro';
+import { url } from '../lib/site';
+import site from '../../site.config.mjs';
+const social = Object.entries(site.social).filter(([, link]) => link);
+---
+<TextPage title="Contact us" path={url('/contact/')} description={`How to reach ${site.name}.`}>
+  <p>Spotted a deadline that has changed, a broken link or a mistake in a guide? Tell us and we'll check it against the official source.</p>
+  {site.contactEmail && <p>Email: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a></p>}
+  {social.length > 0 && (
+    <p>You can also reach us on {social.map(([k, link], i) => <>{i > 0 && ', '}<a href={link} target="_blank" rel="noopener">{k === 'whatsappChannel' ? 'WhatsApp' : k.charAt(0).toUpperCase() + k.slice(1)}</a></>)}.</p>
+  )}
+  <p>We can't help with individual visa or admission applications, and we never charge for information.</p>
+</TextPage>

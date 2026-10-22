@@ -1,0 +1,7 @@
+---
+// Prints one ad code from site.config.mjs (ads.<name>). Prints nothing while the slot is empty.
+import site from '../../site.config.mjs';
+interface Props { name: keyof typeof site.ads }
+const code = site.ads[Astro.props.name]?.trim();
+---
+{code && <div class:list={['ad-slot', `ad-${Astro.props.name}`]} set:html={code} />}
