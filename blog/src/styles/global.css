@@ -176,4 +176,5 @@ h1, h2, h3 { line-height: 1.25; }
 .footer-head { font-weight: 700; margin: 0 0 4px; }
 .footer-social { display: flex; flex-wrap: wrap; gap: 10px; }
 .footer-bottom { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 12px; }
+.site-counter { margin: 4px 0 8px; min-height: 21px; }
 @media (max-width: 720px) { .footer-grid { grid-template-columns: 1fr 1fr; } .footer-grid > div:first-child { grid-column: 1 / -1; } }

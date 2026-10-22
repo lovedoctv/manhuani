@@ -61,6 +61,12 @@ export default {
     home: ``,
   },
 
+  // Visitor counter (Supercounters "users online" badge), shown at the bottom of every page for every
+  // visitor, TikTok visitors included. Paste the code exactly as Supercounters gives it. Empty shows nothing.
+  counter: `<!-- BEGIN: Powered by Supercounters.com -->
+<center><script type="text/javascript" src="//widget.supercounters.com/ssl/online_i.js"></script><script type="text/javascript">sc_online_i(1739775,"f5f5f5","fafafa");</script></center>
+<!-- END: Powered by Supercounters.com -->`,
+
   // Visitors who arrive from an ad with one of these utm_source values don't get the bodyEnd code
   // (Social Bar, In-Page Push, Vignette). TikTok rejects landing pages with pop-ups and fake
   // notifications, so tag your TikTok ad links with utm_source=tiktok and those visitors, and
