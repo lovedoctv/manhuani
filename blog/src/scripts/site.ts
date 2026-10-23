@@ -2,6 +2,7 @@ declare global {
   interface Window {
     fbq?: (...args: unknown[]) => void;
     ttq?: { track: (...args: unknown[]) => void };
+    gtag?: (...args: unknown[]) => void;
   }
 }
 
@@ -46,6 +47,7 @@ document.querySelectorAll<HTMLAnchorElement>('a[data-offer]').forEach((a) => {
     // Lets Meta and TikTok optimise for people who click offers, not just page views.
     window.fbq?.('trackCustom', 'OfferClick', { offer: a.dataset.offer, post: a.dataset.post });
     window.ttq?.track('ClickButton', { content_id: a.dataset.offer, content_name: a.dataset.post });
+    window.gtag?.('event', 'offer_click', { offer: a.dataset.offer, post: a.dataset.post });
   });
 });
 
@@ -60,6 +62,7 @@ if (article) {
       sent = true;
       window.fbq?.('track', 'ViewContent', { content_name: article.dataset.post, content_category: article.dataset.category });
       window.ttq?.track('ViewContent', { content_id: article.dataset.post, content_category: article.dataset.category });
+      window.gtag?.('event', 'read_post', { post: article.dataset.post, category: article.dataset.category });
       removeEventListener('scroll', onScroll);
     }
   };

@@ -1,9 +1,22 @@
 ---
-// Meta and TikTok pixel base code, added only when an ID is set in site.config.mjs.
+// Meta pixel, TikTok pixel and Google Analytics base code, each added only when its ID is set in site.config.mjs.
 import site from '../../site.config.mjs';
 const meta = site.pixels.meta.trim();
 const tiktok = site.pixels.tiktok.trim();
+const google = (site.pixels.google ?? '').trim();
 ---
+{google && (
+  <>
+    <script async src={`https://www.googletagmanager.com/gtag/js?id=${google}`}></script>
+    <script is:inline define:vars={{ google }}>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      window.gtag = gtag;
+      gtag('js', new Date());
+      gtag('config', google);
+    </script>
+  </>
+)}
 {meta && (
   <>
     <script is:inline define:vars={{ meta }}>
