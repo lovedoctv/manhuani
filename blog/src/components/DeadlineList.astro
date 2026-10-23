@@ -1,10 +1,11 @@
 ---
 import { postUrl, formatDate, daysLeft, type Post } from '../lib/site';
-interface Props { posts: Post[] }
-const { posts } = Astro.props;
+// live: posts written in the admin (live/posts.json) are added to this list in the browser, up to limit.
+interface Props { posts: Post[]; live?: boolean; limit?: number }
+const { posts, live = false, limit } = Astro.props;
 const label = (n: number) => (n === 0 ? 'Closes today' : n === 1 ? '1 day left' : `${n} days left`);
 ---
-<ol class="deadline-list">
+<ol class="deadline-list" data-live={live ? 'deadlines' : undefined} data-limit={limit}>
   {posts.map((p) => {
     const left = daysLeft(p.data.deadline!);
     return (

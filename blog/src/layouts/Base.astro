@@ -14,11 +14,13 @@ interface Props {
   type?: 'website' | 'article';
   jsonLd?: object | object[];
   noindex?: boolean;
+  // Only for pages whose address isn't their own build path (the admin's post layout).
+  canonical?: string;
 }
 
 const { title, description = site.description, image = url('/og-image.png'), type = 'website', jsonLd, noindex = false } = Astro.props;
 const fullTitle = title ? `${title} | ${site.name}` : `${site.name}: ${site.tagline}`;
-const canonical = new URL(Astro.url.pathname, site.url).toString();
+const canonical = Astro.props.canonical ?? new URL(Astro.url.pathname, site.url).toString();
 const ogImage = absoluteUrl(image);
 const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 const adHead = site.ads.head.trim();

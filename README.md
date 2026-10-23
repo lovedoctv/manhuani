@@ -1,69 +1,52 @@
-# Manhuani
+# AbroadPath
 
-> **Now AbroadPath.** Since October 2026, the site is a scholarships, study abroad and
-> work visa blog for Nigeria, South Africa, Kenya, Ghana, Zimbabwe and Zambia, at https://aduna.fit/AbroadPath/
-> (old /manhuani/ links redirect there). Its code is in `blog/`, and
-> `npm run dev`, `npm run build` and `npm run check` now work on it. Ad codes, offers and pixels go in
-> `blog/site.config.mjs`; see [docs/BLOG.md](docs/BLOG.md). The manhwa site below is kept as it was and
-> still builds with `npm run dev:manhwa`, `npm run build:manhwa` and `npm run check:manhwa`.
+Live at **https://aduna.fit/AbroadPath/**. Scholarships, study abroad and work visa guides for
+Nigeria, South Africa, Kenya, Ghana, Zimbabwe and Zambia. Old https://aduna.fit/manhuani/ links
+redirect there.
 
-Live at **https://aduna.fit/manhuani/**. A fast, responsive manhua and manhwa blog. It's built as a **static site**, so it runs on any standard shared hosting (like Namecheap with cPanel) without a Node.js server.
+It's a fast **static site** built with [Astro](https://astro.build), so it runs on standard shared
+hosting (Namecheap with cPanel) without a Node.js server. A small PHP admin at
+**https://aduna.fit/AbroadPath/admin/** lets you write, publish and delete posts from the browser.
 
-- Home page with Popular Series, Latest Updates (paginated) and a sidebar with search, Hot Series, genres and years
-- Series pages with cover, info, genres, chapter list, bookmarks and related series
-- Chapter reader pages with previous/next navigation and a chapter dropdown
-- Genre, release-year and A–Z archive pages
-- Blog with Markdown posts and an RSS feed
-- Search, bookmarks and light/dark theme, all handled in the browser
-- SEO: page titles and descriptions, canonical links, Open Graph tags, JSON-LD structured data, `sitemap.xml` and `robots.txt`
-- A private crawler dashboard at `/manhuani/admin/` (PHP). It follows official feeds of sites you have permission to use, and series on MangaDex through its official API, and shows new chapters in Latest Updates without a rebuild. Five official APIs (MangaDex, MangaUpdates, AniList, Bangumi, Anime News Network) add new titles and chapters automatically.
-
-Built with [Astro](https://astro.build) (which uses Vite under the hood).
+- Home page with "Start here", Latest posts and "Closing soon" deadlines
+- Category, country and deadline pages, search and an RSS feed
+- Ad slots (Adsterra or Monetag), CPA offer boxes and the Meta and TikTok pixels
+- SEO: titles and descriptions, canonical links, Open Graph tags, JSON-LD, `sitemap.xml` and `robots.txt`
 
 ## Folder layout
 
 ```
-site.config.mjs        Site name, domain, folder (base), genres and other settings
-src/content/series/    One JSON file per series (metadata + chapters)
-src/content/blog/      Blog posts as Markdown files
-src/pages/             Page templates (URLs mirror this folder)
-src/components/        Reusable parts (cards, sidebar, header...)
-src/styles/global.css  All styling and colours
-public/                Files copied as-is (favicon, .htaccess, social image, your covers)
-public/admin/          The private crawler dashboard (PHP, runs on your hosting)
-scripts/               Build, preview and link-check helpers
-deploy/                The finished website: the only folder that goes online
-.cpanel.yml            Tells cPanel to copy deploy/ into aduna.fit/manhuani
-docs/                  Guides: deployment, adding content, crawler, architecture
+blog/site.config.mjs        Ad codes, CPA offers, pixel IDs, social links, countries, categories
+blog/src/content/posts/     Posts kept in the code, one Markdown file each
+blog/src/                   Page templates, components, styles and browser scripts
+blog/public/                Files copied as they are (.htaccess, sw.js, favicon, social image)
+blog/public/admin/          The blog admin (PHP, runs on your hosting)
+blog/public/post.php        Shows the posts written in the admin
+blog/scripts/               Build, preview and link-check helpers
+blog/test/                  Tests for the admin
+deploy/                     The finished website: the only folder that goes online
+.cpanel.yml                 Tells cPanel to copy deploy/ into aduna.fit/AbroadPath
+docs/                       Guides: the blog and its admin, and deployment
 ```
 
 ## Run it on your computer
 
-You need [Node.js](https://nodejs.org) 22 or newer.
+You need [Node.js](https://nodejs.org) 22 or newer. `npm test` also needs PHP 8 with SQLite.
 
 ```bash
 npm install          # once, installs the build tools
-npm run dev          # live-editing server at http://localhost:4321/manhuani/
-```
-
-To test the exact files that will go online:
-
-```bash
+npm run dev          # live-editing server at http://localhost:4321/AbroadPath/
 npm run build        # builds the site into deploy/
 npm run check        # checks every internal link in deploy/
-npm run preview      # serves deploy/ at http://localhost:4321/manhuani/, like your hosting will
+npm run preview      # serves deploy/ like your hosting will
+npm test             # runs the admin tests on a local PHP server
 ```
 
-## Publish it
+## Write and publish
 
-See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for beginner-friendly, step-by-step instructions.
+- **[docs/BLOG.md](docs/BLOG.md)**: the admin, posts, ad codes, offers and pixels.
+- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**: putting a change online with cPanel.
 
-In short: changes pushed to GitHub are rebuilt into `deploy/` automatically, then in cPanel you click **Update from Remote** and **Deploy HEAD Commit**.
-
-## Add series, chapters and posts
-
-See **[docs/CONTENT.md](docs/CONTENT.md)**.
-
-## Crawler dashboard (Phase 2)
-
-See **[docs/CRAWLER.md](docs/CRAWLER.md)** to install it, add sources and set up the cron job. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** explains how it fits with the static site.
+Posts written in the admin go live as soon as you publish them. Changes to the code are rebuilt into
+`deploy/` by GitHub automatically, then in cPanel you click **Update from Remote** and
+**Deploy HEAD Commit**.

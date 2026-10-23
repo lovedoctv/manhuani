@@ -15,8 +15,10 @@ interface Props {
   page: number;
   total: number;
   pageUrl: (n: number) => string;
+  // Which posts written in the admin join page 1 of this list in the browser (see scripts/site.ts).
+  live?: { category?: string; country?: string };
 }
-const { title, intro, crumbs, posts, page, total, pageUrl } = Astro.props;
+const { title, intro, crumbs, posts, page, total, pageUrl, live = {} } = Astro.props;
 ---
 <Base title={page > 1 ? `${title} – Page ${page}` : title} description={intro} noindex={page > 1}>
   <div class="container block">
@@ -24,7 +26,12 @@ const { title, intro, crumbs, posts, page, total, pageUrl } = Astro.props;
     <h1 class="page-title">{title}</h1>
     <p class="page-intro muted">{intro}</p>
     <slot />
-    {posts.length ? (
+    {page === 1 ? (
+      <>
+        <div class="post-grid" data-live="cards" data-category={live.category} data-country={live.country}>{posts.map((p) => <PostCard post={p} />)}</div>
+        {!posts.length && <p class="empty" data-live-empty>New guides are on the way. Check back soon.</p>}
+      </>
+    ) : posts.length ? (
       <div class="post-grid">{posts.map((p) => <PostCard post={p} />)}</div>
     ) : (
       <p class="empty">New guides are on the way. Check back soon.</p>

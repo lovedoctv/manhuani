@@ -11,7 +11,8 @@ const deadlines = await openDeadlines();
     <Breadcrumbs items={[{ name: 'Deadlines', href: url('/deadlines/') }]} />
     <h1 class="page-title">Deadlines</h1>
     <p class="page-intro muted">Open applications, closing soonest first. Dates are taken from the official pages; always confirm on the official site before you apply.</p>
-    {deadlines.length ? <DeadlineList posts={deadlines} /> : <p class="empty">No open deadlines right now. New ones are added as programmes open.</p>}
+    <DeadlineList posts={deadlines} live />
+    {!deadlines.length && <p class="empty" data-live-empty>No open deadlines right now. New ones are added as programmes open.</p>}
     <AdSlot name="home" />
   </div>
 </Base>

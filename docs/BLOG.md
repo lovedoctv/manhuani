@@ -4,15 +4,18 @@ https://aduna.fit/AbroadPath/ is **AbroadPath**: scholarships, study abroad and 
 Nigeria, South Africa, Kenya, Ghana, Zimbabwe and Zambia. It earns from Adsterra or Monetag ad codes
 and CPA offers, with traffic from Meta and TikTok ads.
 
-Everything you'll normally change is in two places:
+You can add posts in two ways:
 
-```
-blog/site.config.mjs          Ad codes, CPA offers, pixel IDs, social links, countries, categories
-blog/src/content/posts/       One Markdown file per post
-```
+- **The admin** at https://aduna.fit/AbroadPath/admin/: write in the browser, add images and
+  publish. The post is live straight away, with no deploy. See [Write posts in the admin](#write-posts-in-the-admin).
+- **In the code**: one Markdown file per post in `blog/src/content/posts/`, published with a deploy.
+  See [Add a post in the code](#add-a-post-in-the-code).
 
-The old manhwa site's code is still in the repository (`src/`, `site.config.mjs`, `public/admin/`,
-the crawler). `npm run build:manhwa`, `npm run dev:manhwa` and `npm run check:manhwa` still build it.
+Both kinds look the same to readers and show up in the same lists, search and deadlines, and both
+can be edited in the admin (see [Editing the posts in the code](#editing-the-posts-in-the-code)).
+Ad codes, CPA offers, pixel IDs, social links, countries and categories are in `blog/site.config.mjs`.
+
+The old manhwa site's code (the crawler, the old dashboard and its pages) was removed in October 2026.
 
 ## Publish a change
 
@@ -22,7 +25,85 @@ the crawler). `npm run build:manhwa`, `npm run dev:manhwa` and `npm run check:ma
 3. In cPanel, open **Git Version Control**, click **Manage** on `manhuani`, then
    **Update from Remote** and **Deploy HEAD Commit**.
 
-## Add a post
+## Write posts in the admin
+
+### The first time
+
+1. Deploy the site once (see [Publish a change](#publish-a-change)).
+2. Open https://aduna.fit/AbroadPath/admin/. It asks for a **setup code** and a new password.
+3. In cPanel **File Manager**, open the folder `abroadpath_private` in your home folder (next to
+   `aduna.fit`, not inside it) and open `setup-code.txt`. Copy the code into the admin.
+4. Choose a password of at least 10 characters. The admin deletes `setup-code.txt` once it's used.
+
+`abroadpath_private` also holds the admin's settings (`config.php`) and its database of posts
+(`blog.sqlite`). It sits outside the website folder, so no one can open it from a browser, and
+deploys never touch it. Back it up now and then: download it from File Manager.
+
+### Writing a post
+
+1. Click **+ New post**.
+2. Give it a title and write the post. The toolbar does headings, bold, italic, links, lists, quotes
+   and images. Pasting from Word or Google Docs keeps headings, lists, links, bold, italic and tables, and drops
+   fonts, colours and sizes.
+3. Fill in the side boxes:
+   - **Summary**: one or two sentences, shown in Google, on cards and when the link is shared.
+   - **Category**, and the countries it's for (tick none if it suits everyone).
+   - **Cover image** (optional).
+   - **Key facts box**, **Deadline**, the **official page** and **Facts checked on**, like the posts
+     in the code. A deadline puts the post on the Deadlines page and "Closing soon" on the home page.
+   - **Web address**: filled in from the title. Don't change it after publishing, or links people
+     already shared stop working.
+4. **Save draft** keeps it private. **Preview the last saved version** shows it as readers will see
+   it. **Publish** puts it on the site.
+
+Published posts get the same ads, offer boxes, share buttons and related posts as the posts in the
+code, at `/AbroadPath/blog/<web-address>/`. Edit one and click **Update**; **Unpublish** takes it off
+the site and keeps it as a draft; **Delete post** removes it and its images for good.
+
+### Editing the posts in the code
+
+The admin lists the posts in the code under **Posts in the site's code**. Click **Edit** on one to
+open it in the editor with its text, facts and deadline. Your changes are saved as a separate copy:
+
+- **Save draft** keeps them private, and the site keeps showing the original.
+  **Preview the last saved version** shows them as readers will see them.
+- **Publish changes** shows your version at the post's usual address, in every list and in search.
+  The address can't change, so links people shared keep working.
+- **Show the original** or **Delete my changes** puts the version from the code back.
+
+The original stays in `blog/src/content/posts/`, untouched. If you edit a post in the admin, make
+later changes there too: an edited version hides changes made to the original in the code.
+
+### Images
+
+JPG, PNG, WEBP or GIF, up to 8 MB. Photos are made smaller in the browser before they're sent, and
+the server resizes anything wider than 1600 pixels and saves it as WEBP, so pages stay fast on mobile
+data. Images go in the `media` folder of the site. Only use photos you took, bought or have
+permission to use.
+
+### What the admin writes on the server
+
+Besides `abroadpath_private`, the admin writes these into `aduna.fit/AbroadPath/`, and deploys
+never overwrite them:
+
+- `live/posts.json`, the list of admin posts that the home, category, country, deadline and search
+  pages read,
+- `live/edited/`, one small file for each post in the code whose edited version is published
+  (`.htaccess` uses it to show that version),
+- `sitemap-posts.xml`, the admin posts' sitemap (`robots.txt` points to it; submit it in Google Search
+  Console next to `sitemap.xml`), and
+- `media/`, the images.
+
+### Sign-in and safety
+
+- Five wrong passwords lock sign-in from that address for 15 minutes.
+- You're signed out after 2 hours without using the admin. Changing the password (**Password**, at
+  the top) signs out every other browser.
+- **Forgot the password?** In File Manager, delete `config.php` in `abroadpath_private`, then open
+  the admin again: it makes a new `setup-code.txt` for a new password. Your posts stay.
+- The admin is hidden from search engines, and its own files can't be opened from a browser.
+
+## Add a post in the code
 
 Create `blog/src/content/posts/<slug>.md`. The file name becomes the URL: `/AbroadPath/blog/<slug>/`.
 
@@ -69,10 +150,11 @@ Put banner codes (the ones with `atOptions` and `invoke.js`) in the banner slots
 
 ### TikTok traffic
 
-TikTok rejects landing pages with pop-ups or fake notification ads. `quietSources: ['tiktok']`
-switches off the `bodyEnd` code for anyone who arrives with `utm_source=tiktok`, for their whole
-visit, so TikTok's reviewers and visitors see the page with banners only. Add `'facebook'` to the
-list to do the same for Meta traffic.
+TikTok visitors currently get the same `bodyEnd` ads as everyone else (`quietSources: []`).
+TikTok rejects landing pages with pop-ups or fake notification ads, so if TikTok rejects a landing
+page, set `quietSources: ['tiktok']`. That switches off the `bodyEnd` code for anyone who arrives
+with `utm_source=tiktok`, for their whole visit, so TikTok's reviewers and visitors see the page
+with banners only. Add `'facebook'` to the list to do the same for Meta traffic.
 
 ### Tag your ad links
 
@@ -130,6 +212,21 @@ Optimise for landing page views first, then for ViewContent or OfferClick once e
 - Old manhwa URLs (`/manhuani/manga/...`, `/manhuani/chapter/...` and the rest) redirect to the new
   home page through `.htaccess`. The old files stay on the server because the deploy only copies
   files and never deletes, which is harmless.
-- The crawler dashboard now deploys to `/AbroadPath/admin/`. Its cron job in cPanel **Cron Jobs** still
-  runs the old copy in `aduna.fit/manhuani/admin/`. If you don't need the crawler any more, delete that
-  cron job so it stops calling MangaDex and the other APIs.
+- `/AbroadPath/admin/` is now the blog admin. The old crawler dashboard's leftover files in that
+  folder (`cli.php`, `lib/`) are locked by the new `admin/.htaccess`, so they can't be opened.
+
+### Clean up the old manhwa files
+
+The deploy never deletes files, so the old manhwa site is still on the server. In cPanel:
+
+1. **Cron Jobs**: delete the job that runs `admin/cli.php` (the old crawler). It still calls
+   MangaDex and the other APIs.
+2. **File Manager**, in `aduna.fit/AbroadPath/`, delete the old manhwa folders: `bookmarks`,
+   `chapter`, `copyright`, `covers`, `data`, `dmca`, `manga`, `manga-genre`, `manga-release`,
+   `new-titles`, `page` and `title`, plus `admin/cli.php`, `admin/lib`, and the old posts
+   `blog/welcome-to-manhuani` and `blog/best-cultivation-manhua-for-beginners`.
+   Don't delete `live`, `media` or `sitemap-posts.xml`: the admin uses them.
+3. In `aduna.fit/manhuani/`, delete everything **except `.htaccess`**, which sends old links to
+   AbroadPath.
+4. In your home folder, delete `manhuani_private` (the crawler's settings and database).
+   Don't touch `abroadpath_private`.

@@ -1,0 +1,9 @@
+---
+// The page layout (header, menu, ads, footer) for posts written in the blog admin. post.php fills in
+// the ZZ...ZZ markers and the main content for each post. make-deploy.mjs moves this page to
+// admin/inc/layout.html, which visitors can't open, so it never shows up on the site itself.
+import Base from '../layouts/Base.astro';
+---
+<Base title="ZZTITLEZZ" description="ZZDESCRIPTIONZZ" type="article" image="https://zzimage.invalid/" canonical="https://zzcanonical.invalid/" jsonLd="ZZJSONLDZZ">
+  <div id="zz-main"></div>
+</Base>

@@ -1,0 +1,18 @@
+# Images uploaded in the blog admin. Only image files are served from here, and nothing in
+# this folder ever runs as code, whatever its name.
+Options -Indexes -ExecCGI
+
+<FilesMatch "(?i)\.(php\d?|phtml|phar|pht|phps|cgi|pl|py|sh|shtml|s?html?|svg|js|htaccess)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Content-Security-Policy "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox"
+</IfModule>

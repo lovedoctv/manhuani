@@ -1,9 +1,0 @@
----
-import SeriesCard from './SeriesCard.astro';
-import type { Series } from '../lib/data';
-interface Props { items: Series[]; variant?: 'latest' | 'popular'; eagerCount?: number; ranked?: boolean; track?: boolean }
-const { items, variant = 'latest', eagerCount = 0, ranked = false, track = false } = Astro.props;
----
-<div class:list={[track ? 'car-track' : 'series-grid', variant]}>
-  {items.map((s, i) => <SeriesCard series={s} variant={variant} eager={i < eagerCount} rank={ranked ? i + 1 : 0} />)}
-</div>

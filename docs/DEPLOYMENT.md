@@ -1,13 +1,13 @@
 # Deploying to Namecheap (cPanel)
 
-The site lives at **https://aduna.fit/manhuani/**. The website that goes online is the **`deploy/`** folder. It contains only finished HTML, CSS, JavaScript, images and the `.htaccess` file. Source code, `.git`, `node_modules`, `package.json` and any secrets are never copied to your website.
+The site lives at **https://aduna.fit/AbroadPath/**. The website that goes online is the **`deploy/`** folder. It contains only finished HTML, CSS, JavaScript, images, the `.htaccess` files and the blog admin's PHP code (which has no passwords or keys in it). Source code, `.git`, `node_modules`, `package.json` and any secrets are never copied to your website.
 
 ## How it works
 
 1. You (or Claude) change the site and push to the `main` branch on GitHub.
 2. A GitHub Action rebuilds `deploy/` and commits it, so you don't need Node.js installed.
 3. In cPanel, **Git Version Control** pulls the latest commit from GitHub.
-4. **Deploy HEAD Commit** runs `.cpanel.yml`, which copies `deploy/` into the `manhuani` folder inside aduna.fit's document root (`$HOME/aduna.fit/manhuani/`).
+4. **Deploy HEAD Commit** runs `.cpanel.yml`, which copies `deploy/` into the `AbroadPath` folder inside aduna.fit's document root (`$HOME/aduna.fit/AbroadPath/`). It also puts a redirect `.htaccess` in the old `manhuani` folder and Monetag's `sw.js` at the domain root.
 
 ## One-time setup
 
@@ -19,10 +19,10 @@ You have already done steps 1 and 2 (SSH key and clone). They're listed here for
    - Repository Path: `repositories/manhuani`
 3. **Check aduna.fit's document root.**
    - Open cPanel > **Domains**. Find `aduna.fit` and look at its **Document Root** column.
-   - It's `/aduna.fit` (an addon domain), so `.cpanel.yml` deploys to `$HOME/aduna.fit/manhuani/`. `$HOME` is your cPanel home folder, shown as "Home Directory" in the **General Information** panel on the cPanel home page.
-   - If the document root ever changes (for example to `/public_html`), edit the `DEPLOYPATH` line in `.cpanel.yml` to match, such as `export DEPLOYPATH=$HOME/public_html/manhuani/`. Keep the slash at the end.
-4. **Domain and folder settings.** `site.config.mjs` already has `url: 'https://aduna.fit'` and `base: '/manhuani'`. If you ever move the site, change these two lines and the `DEPLOYPATH` in `.cpanel.yml`.
-5. **Nothing else on aduna.fit is touched.** Deploying only writes inside the `manhuani` folder.
+   - It's `/aduna.fit` (an addon domain), so `.cpanel.yml` deploys to `$HOME/aduna.fit/AbroadPath/`. `$HOME` is your cPanel home folder, shown as "Home Directory" in the **General Information** panel on the cPanel home page.
+   - If the document root ever changes (for example to `/public_html`), edit the `DEPLOYPATH` line in `.cpanel.yml` to match, such as `export DEPLOYPATH=$HOME/public_html/AbroadPath/`. Keep the slash at the end.
+4. **Domain and folder settings.** `blog/site.config.mjs` has `url: 'https://aduna.fit'` and `base: '/AbroadPath'`. If you ever move the site, change these two lines and the `DEPLOYPATH` in `.cpanel.yml`.
+5. **Nothing else on aduna.fit is touched.** Deploying only writes inside the `AbroadPath` folder, the old `manhuani` and `abroadpath` folders' `.htaccess`, and `aduna.fit/sw.js`.
 
 ## Every time you publish
 
@@ -31,21 +31,21 @@ You have already done steps 1 and 2 (SSH key and clone). They're listed here for
 3. Open the **Pull or Deploy** tab.
 4. Click **Update from Remote**. This downloads the latest commit from GitHub.
 5. Click **Deploy HEAD Commit**. This copies the new site into your website folder.
-6. Open https://aduna.fit/manhuani/ in the browser and refresh. A hard refresh (Ctrl+F5) skips the browser cache.
+6. Open https://aduna.fit/AbroadPath/ in the browser and refresh. A hard refresh (Ctrl+F5) skips the browser cache.
 
-## The crawler dashboard
+## The blog admin
 
-`deploy/` also contains the dashboard in `admin/`, which is PHP code with no secrets. Deploying never touches:
+`deploy/` also contains the blog admin in `admin/` and `post.php`, which is PHP code with no secrets. It needs PHP 8.0 or newer with the `pdo_sqlite`, `dom`, `mbstring` and `json` extensions (cPanel > **Select PHP Version**); if one is missing, the admin page says which. Deploying never touches:
 
-- your settings and database in `~/manhuani_private/` (outside the website folder), or
-- the update files the crawler writes to `aduna.fit/manhuani/data/live/`.
+- the admin's password and database in the `abroadpath_private` folder in your home folder (outside the website folder), or
+- the posts list, sitemap and images it writes to `aduna.fit/AbroadPath/` (`live/`, `sitemap-posts.xml` and `media/`).
 
-So you can deploy as often as you like. The first time, follow **[CRAWLER.md](CRAWLER.md)** to set it up.
+So you can deploy as often as you like, and posts written in the admin stay. The first time, follow [Write posts in the admin](BLOG.md#write-posts-in-the-admin).
 
 ## After the first deploy
 
-- **HTTPS.** If aduna.fit doesn't already redirect to https://, and its SSL certificate is active (cPanel > SSL/TLS Status), open `public/.htaccess` and uncomment the three lines under "Uncomment the next 3 lines". Then commit and deploy again.
-- **Tell Google about the site.** Add aduna.fit in [Google Search Console](https://search.google.com/search-console) and submit `https://aduna.fit/manhuani/sitemap.xml`. Search engines only read `robots.txt` at the domain root, so the copy inside `/manhuani/` is just for reference.
+- **HTTPS.** If aduna.fit doesn't already redirect to https://, and its SSL certificate is active (cPanel > SSL/TLS Status), open `blog/public/.htaccess` and uncomment the three lines under "Uncomment the next 3 lines". Then commit and deploy again.
+- **Tell Google about the site.** Add aduna.fit in [Google Search Console](https://search.google.com/search-console) and submit `https://aduna.fit/AbroadPath/sitemap.xml` and, for the posts written in the admin, `https://aduna.fit/AbroadPath/sitemap-posts.xml`. Search engines only read `robots.txt` at the domain root, so the copy inside `/AbroadPath/` is just for reference.
 
 ## Troubleshooting
 
@@ -53,10 +53,12 @@ So you can deploy as often as you like. The first time, follow **[CRAWLER.md](CR
 | --- | --- |
 | "Deploy HEAD Commit" is greyed out | The repo has uncommitted changes on the server. Don't edit files inside `repositories/manhuani` in File Manager. |
 | Deploy fails right away | `.cpanel.yml` must be in the repo root, and the `deploy/` folder must exist on `main`. Check the Actions tab finished green. |
-| Deploy fails mentioning the path | Replace `$HOME/aduna.fit/manhuani/` in `.cpanel.yml` with the full path, for example `/home/YOUR-CPANEL-USERNAME/aduna.fit/manhuani/`. |
-| Pages show 404 or look unstyled | Make sure `.htaccess` and the `assets/` folder are inside `aduna.fit/manhuani`. File Manager hides dotfiles: open Settings and tick "Show Hidden Files". |
+| Deploy fails mentioning the path | Replace `$HOME/aduna.fit/AbroadPath/` in `.cpanel.yml` with the full path, for example `/home/YOUR-CPANEL-USERNAME/aduna.fit/AbroadPath/`. |
+| Pages show 404 or look unstyled | Make sure `.htaccess` and the `assets/` folder are inside `aduna.fit/AbroadPath`. File Manager hides dotfiles: open Settings and tick "Show Hidden Files". |
 | "Update from Remote" fails | Run `ssh -T git@github.com` in cPanel Terminal. It should say "successfully authenticated". If not, re-check the deploy key. |
 | Old version still showing | Hard refresh (Ctrl+F5), or wait a few minutes for the browser cache. |
+| A post written in the admin shows "Page not found" | Check `.htaccess` is in `aduna.fit/AbroadPath` (it sends `/blog/<web-address>/` to `post.php`), and that the post is published, not a draft. |
+| A post from the code that you edited in the admin still shows the old version | Hard refresh (Ctrl+F5): pages are cached for up to 10 minutes. If the editor shows a red warning about it, deploy again so the newest `.htaccess` is in `aduna.fit/AbroadPath`. |
 
 ## Building without GitHub Actions (optional)
 
