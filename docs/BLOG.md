@@ -69,10 +69,11 @@ Put banner codes (the ones with `atOptions` and `invoke.js`) in the banner slots
 
 ### TikTok traffic
 
-TikTok rejects landing pages with pop-ups or fake notification ads. `quietSources: ['tiktok']`
-switches off the `bodyEnd` code for anyone who arrives with `utm_source=tiktok`, for their whole
-visit, so TikTok's reviewers and visitors see the page with banners only. Add `'facebook'` to the
-list to do the same for Meta traffic.
+TikTok visitors currently get the same `bodyEnd` ads as everyone else (`quietSources: []`).
+TikTok rejects landing pages with pop-ups or fake notification ads, so if TikTok rejects a landing
+page, set `quietSources: ['tiktok']`. That switches off the `bodyEnd` code for anyone who arrives
+with `utm_source=tiktok`, for their whole visit, so TikTok's reviewers and visitors see the page
+with banners only. Add `'facebook'` to the list to do the same for Meta traffic.
 
 ### Tag your ad links
 

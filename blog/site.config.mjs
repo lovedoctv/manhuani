@@ -68,10 +68,10 @@ export default {
 <!-- END: Powered by Supercounters.com -->`,
 
   // Visitors who arrive from an ad with one of these utm_source values don't get the bodyEnd code
-  // (Social Bar, In-Page Push, Vignette). TikTok rejects landing pages with pop-ups and fake
-  // notifications, so tag your TikTok ad links with utm_source=tiktok and those visitors, and
-  // TikTok's reviewers, see the page with banners only. Add 'facebook' here to do the same for Meta.
-  quietSources: ['tiktok'],
+  // (Social Bar, In-Page Push, Vignette). Empty means every visitor gets the bodyEnd code. Since
+  // 2026-10-22 TikTok visitors get the same Monetag ads as Facebook visitors, by choice. To give
+  // utm_source=tiktok visitors (and TikTok's reviewers) the page without them again, set ['tiktok'].
+  quietSources: [],
 
   // Pixel IDs (just the number), so Meta and TikTok can optimise for landing page views and offer clicks.
   pixels: {
