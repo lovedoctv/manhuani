@@ -78,7 +78,7 @@ export default {
     meta: '',
     tiktok: '',
     // Google Analytics 4 Measurement ID, like G-ABC123XYZ (Admin > Data streams > your web stream).
-    google: '',
+    google: 'G-BHCY6F4J33',
   },
 
   // CPA and affiliate offers. Each one shows as a "Recommended" box on posts in its categories.
