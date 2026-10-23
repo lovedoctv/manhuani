@@ -248,10 +248,11 @@ test('a post in the code can be edited in the admin, and the original brought ba
   const url = `${B}blog/${slug}/`;
   const marker = path.join(site, 'live', 'edited', slug);
   const anon = new Browser();
+  const count = JSON.parse(fs.readFileSync(path.join(site, 'admin', 'inc', 'site.json'), 'utf8')).posts.length;
   const edited = () => anon.get(url).then((p) => /Edited in the admin/.test(p.text));
 
   let list = await ola.get(`${B}admin/`);
-  assert.match(list.text, /Posts in the site's code \(12\)/);
+  assert.ok(list.text.includes(`Posts in the site's code (${count})`));
   let page = await ola.get(`${B}admin/?a=new&from=${slug}`);
   assert.equal(page.status, 200);
   const fields = formFields(page.text);
@@ -296,7 +297,7 @@ test('a post in the code can be edited in the admin, and the original brought ba
   assert.doesNotMatch(fs.readFileSync(path.join(site, 'sitemap-posts.xml'), 'utf8'), /ielts/, 'it is in sitemap.xml already');
   list = await ola.get(`${B}admin/`);
   assert.match(list.text, /Edited post from the code/);
-  assert.match(list.text, /Posts in the site's code \(11\)/);
+  assert.ok(list.text.includes(`Posts in the site's code (${count - 1})`));
   assert.equal((await ola.get(`${B}admin/?a=new&from=${slug}`)).location, `${B}admin/?a=edit&id=${id}`);
 
   // "Show the original" puts the code version back and keeps the changes as a draft
