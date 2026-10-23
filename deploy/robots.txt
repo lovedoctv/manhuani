@@ -4,3 +4,4 @@ Disallow: /AbroadPath/search/
 Disallow: /AbroadPath/admin/
 
 Sitemap: https://aduna.fit/AbroadPath/sitemap.xml
+Sitemap: https://aduna.fit/AbroadPath/sitemap-posts.xml

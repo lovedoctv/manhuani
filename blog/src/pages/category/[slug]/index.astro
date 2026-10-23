@@ -20,4 +20,5 @@ const { cat, posts, total } = Astro.props as { cat: (typeof site.categories)[num
   page={1}
   total={total}
   pageUrl={(n) => (n === 1 ? categoryUrl(cat.slug) : `${categoryUrl(cat.slug)}page/${n}/`)}
+  live={{ category: cat.slug }}
 />

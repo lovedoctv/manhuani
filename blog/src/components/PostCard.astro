@@ -8,7 +8,7 @@ const cat = category(d.category);
 const flags = d.countries.map((c) => site.countries.find((x) => x.slug === c)?.flag).join(' ');
 const left = d.deadline ? daysLeft(d.deadline) : undefined;
 ---
-<article class="post-card">
+<article class="post-card" data-date={d.date.toISOString()}>
   <p class="card-meta">
     <a class="cat-label" href={categoryUrl(cat.slug)}>{cat.name}</a>
     {flags && <span aria-hidden="true">{flags}</span>}

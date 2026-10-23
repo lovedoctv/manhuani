@@ -35,15 +35,14 @@ const jsonLd = {
     </div>
   </section>
 
-  {deadlines.length > 0 && (
-    <section class="container block">
-      <div class="section-head">
-        <h2 class="section-title">Closing soon</h2>
-        <a href={url('/deadlines/')} class="small">All deadlines →</a>
-      </div>
-      <DeadlineList posts={deadlines} />
-    </section>
-  )}
+  {/* Hidden while empty: a post with a deadline written in the admin can still fill it in the browser. */}
+  <section class="container block" hidden={!deadlines.length}>
+    <div class="section-head">
+      <h2 class="section-title">Closing soon</h2>
+      <a href={url('/deadlines/')} class="small">All deadlines →</a>
+    </div>
+    <DeadlineList posts={deadlines} live limit={6} />
+  </section>
 
   {featured.length > 0 && (
     <section class="container block">
@@ -59,7 +58,8 @@ const jsonLd = {
       <h2 class="section-title">Latest guides</h2>
       <a href={url('/blog/')} class="small">All guides →</a>
     </div>
-    {latest.length ? <div class="post-grid">{latest.map((p) => <PostCard post={p} />)}</div> : <p class="empty">New guides are on the way.</p>}
+    <div class="post-grid" data-live="cards" data-limit="9">{latest.map((p) => <PostCard post={p} />)}</div>
+    {!latest.length && <p class="empty" data-live-empty>New guides are on the way.</p>}
   </section>
 
   <section class="container block">

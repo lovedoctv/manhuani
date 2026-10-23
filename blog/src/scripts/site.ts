@@ -80,4 +80,75 @@ document.querySelectorAll<HTMLElement>('[data-deadline]').forEach((el) => {
   pill?.classList.toggle('closed', left < 0);
 });
 
+// Posts written in the blog admin (/admin/) aren't part of the build: post.php shows their pages, and
+// the admin keeps a list of them in live/posts.json. Lists marked data-live pick them up from there:
+// "cards" (post grids, with data-category, data-country and data-limit) and "deadlines" (deadline lists).
+type LivePost = {
+  slug: string; url: string; title: string; description: string; category: string; categoryName: string;
+  categoryUrl: string; countries: string[]; flags: string; date: string; updated: string | null; deadline: string | null;
+};
+const liveLists = document.querySelectorAll<HTMLElement>('[data-live]');
+if (liveLists.length) {
+  const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+  fetch(`${base}live/posts.json`, { cache: 'no-cache' })
+    .then((r) => (r.ok ? r.json() : []))
+    .then((posts: LivePost[]) => liveLists.forEach((list) => addLivePosts(list, posts)))
+    .catch(() => {});
+}
+
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+const daysUntil = (iso: string) => Math.round((new Date(iso).getTime() - today) / 86_400_000);
+const daysLabel = (n: number) => (n === 0 ? 'Closes today' : n === 1 ? '1 day left' : `${n} days left`);
+
+// The same markup as components/PostCard.astro and DeadlineList.astro.
+function liveCard(p: LivePost) {
+  const left = p.deadline ? daysUntil(p.deadline) : -1;
+  const foot = p.deadline && left >= 0
+    ? `<span class="deadline-pill${left <= 14 ? ' soon' : ''}">Deadline ${shortDate(p.deadline)}</span>`
+    : `<span class="muted">Updated ${shortDate(p.updated ?? p.date)}</span>`;
+  const el = document.createElement('article');
+  el.className = 'post-card';
+  el.dataset.date = p.date;
+  el.innerHTML = `<p class="card-meta"><a class="cat-label" href="${esc(p.categoryUrl)}">${esc(p.categoryName)}</a>${p.flags ? ` <span aria-hidden="true">${esc(p.flags)}</span>` : ''}</p>`
+    + `<h3><a href="${esc(p.url)}">${esc(p.title)}</a></h3><p class="muted">${esc(p.description)}</p><p class="card-foot small">${foot}</p>`;
+  return el;
+}
+
+function liveDeadline(p: LivePost) {
+  const left = daysUntil(p.deadline!);
+  const el = document.createElement('li');
+  el.dataset.deadline = p.deadline!;
+  el.innerHTML = `<a href="${esc(p.url)}">${esc(p.title)}</a> <span class="deadline-pill${left <= 14 ? ' soon' : ''}"><time datetime="${esc(p.deadline!)}">${shortDate(p.deadline!)}</time> · <span data-days-left>${daysLabel(left)}</span></span>`;
+  return el;
+}
+
+function addLivePosts(list: HTMLElement, posts: LivePost[]) {
+  const { live, category, country, limit } = list.dataset;
+  const shown = new Set([...list.querySelectorAll<HTMLAnchorElement>('h3 a, li > a')].map((a) => a.pathname));
+  let picked = posts.filter((p) => !shown.has(new URL(p.url, location.href).pathname)
+    && (!category || p.category === category)
+    && (!country || !p.countries.length || p.countries.includes(country)));
+  if (live === 'deadlines') picked = picked.filter((p) => p.deadline && daysUntil(p.deadline) >= 0);
+  if (!picked.length) return;
+
+  // Newest first for cards, closing soonest first for deadlines, slotted in among the built ones.
+  const key = live === 'deadlines' ? 'deadline' : 'date';
+  const items = [...list.children] as HTMLElement[];
+  for (const p of picked) {
+    const el = live === 'deadlines' ? liveDeadline(p) : liveCard(p);
+    const mine = new Date((p[key] as string)).getTime();
+    const before = items.find((it) => {
+      const theirs = new Date(it.dataset[key] ?? '').getTime();
+      return live === 'deadlines' ? theirs > mine : theirs < mine;
+    });
+    list.insertBefore(el, before ?? null);
+    items.splice(before ? items.indexOf(before) : items.length, 0, el);
+  }
+  if (limit) [...list.children].slice(Number(limit)).forEach((el) => el.remove());
+  list.closest('[hidden]')?.removeAttribute('hidden');
+  list.parentElement?.querySelector('[data-live-empty]')?.remove();
+}
+
 export {};

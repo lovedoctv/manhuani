@@ -1,0 +1,194 @@
+{
+ "name": "AbroadPath",
+ "url": "https://aduna.fit",
+ "base": "/AbroadPath/",
+ "ogImage": "https://aduna.fit/AbroadPath/og-image.png",
+ "categories": [
+  {
+   "slug": "scholarships",
+   "name": "Scholarships"
+  },
+  {
+   "slug": "study-abroad",
+   "name": "Study Abroad"
+  },
+  {
+   "slug": "work-visas",
+   "name": "Work Visas"
+  },
+  {
+   "slug": "jobs-abroad",
+   "name": "Jobs Abroad"
+  },
+  {
+   "slug": "exams",
+   "name": "IELTS & Exams"
+  },
+  {
+   "slug": "guides",
+   "name": "Guides"
+  }
+ ],
+ "countries": [
+  {
+   "slug": "nigeria",
+   "name": "Nigeria",
+   "flag": "🇳🇬"
+  },
+  {
+   "slug": "south-africa",
+   "name": "South Africa",
+   "flag": "🇿🇦"
+  },
+  {
+   "slug": "kenya",
+   "name": "Kenya",
+   "flag": "🇰🇪"
+  },
+  {
+   "slug": "ghana",
+   "name": "Ghana",
+   "flag": "🇬🇭"
+  },
+  {
+   "slug": "zimbabwe",
+   "name": "Zimbabwe",
+   "flag": "🇿🇼"
+  },
+  {
+   "slug": "zambia",
+   "name": "Zambia",
+   "flag": "🇿🇲"
+  }
+ ],
+ "ads": {
+  "inArticle": "",
+  "inArticle2": "",
+  "afterArticle": ""
+ },
+ "offers": [],
+ "posts": [
+  {
+   "slug": "canada-study-permit-cap-2026",
+   "title": "Canada study permit cap 2026: what it means for African students",
+   "description": "Canada is issuing fewer study permits in 2026 and plans 150,000 new student arrivals a year in 2027 and 2028. Master's and PhD students at public institutions no longer need a PAL.",
+   "category": "study-abroad",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "daad-epos-scholarship-germany",
+   "title": "DAAD EPOS scholarship: a funded master's or PhD in Germany for professionals",
+   "description": "DAAD's EPOS programme pays €934 a month for a development-related master's in Germany (€1,300 for a PhD). Here's who qualifies and how the course-by-course deadlines work.",
+   "category": "scholarships",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "erasmus-mundus-scholarship-guide",
+   "title": "Erasmus Mundus scholarship: €1,400 a month to study a master's in Europe",
+   "description": "How Erasmus Mundus Joint Masters scholarships work for Africans: what they pay, how to apply to each course, and when applications open.",
+   "category": "scholarships",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "fully-funded-scholarships-for-africans-2027",
+   "title": "Fully funded scholarships for Africans: the 2027 calendar",
+   "description": "12 big scholarships Nigerians, Kenyans, Ghanaians, South Africans, Zimbabweans and Zambians can apply for, with what each covers and when it opens or closes.",
+   "category": "scholarships",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "gates-cambridge-scholarship-2027",
+   "title": "Gates Cambridge Scholarship 2027: who can apply and the deadlines",
+   "description": "Gates Cambridge pays full fees, a £23,152 living allowance and flights for a PhD or master's at Cambridge. Applications for 2027 are open now.",
+   "category": "scholarships",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": "2026-12-08T00:00:00.000Z"
+  },
+  {
+   "slug": "germany-opportunity-card-chancenkarte",
+   "title": "Germany Opportunity Card (Chancenkarte): a one-year visa to look for work",
+   "description": "Germany's Opportunity Card lets skilled people move to Germany for up to a year to find a job, with part-time work allowed. Here's who qualifies and how much money you need.",
+   "category": "jobs-abroad",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "ielts-fee-nigeria-2026",
+   "title": "IELTS fee in Nigeria (2026): British Council and IDP prices compared",
+   "description": "IELTS Academic and General Training cost ₦299,000 in Nigeria in 2026, and IELTS for UKVI costs ₦301,200 to ₦315,500. Here are the current prices and a ₦25,000 British Council discount.",
+   "category": "exams",
+   "countries": [
+    "nigeria"
+   ],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "mastercard-foundation-scholars-program",
+   "title": "Mastercard Foundation Scholars Program: how to apply and which universities are open",
+   "description": "Mastercard Foundation scholarships pay tuition, accommodation, books and flights for young Africans. You apply to a partner university, and each one has its own deadline.",
+   "category": "scholarships",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "nurses-work-in-uk-ireland-nmc-nmbi",
+   "title": "How nurses from Africa can work in the UK or Ireland: NMC and NMBI registration",
+   "description": "Nurses can still move to the UK and Ireland from abroad. Here are the registration steps, the IELTS and OET scores you need, and the visa each country uses.",
+   "category": "jobs-abroad",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "spot-fake-job-abroad-visa-offers",
+   "title": "How to spot a fake job abroad or visa offer before you pay",
+   "description": "Fake visa sponsorship and job abroad offers cost Africans millions every year. Here's how to check an employer, a recruiter or a school in a few minutes.",
+   "category": "guides",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "uk-care-worker-visa-closed-alternatives",
+   "title": "UK care worker visa is closed to new overseas applicants: where carers and nurses can go now",
+   "description": "Since 22 July 2025 the UK no longer gives care worker visas to people applying from abroad. Here's what changed, who can still go, and the routes open to Africans in 2026.",
+   "category": "work-visas",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "uk-skilled-worker-visa-2026-rules",
+   "title": "UK Skilled Worker visa in 2026: the new salary, skill and English rules",
+   "description": "The UK Skilled Worker visa now needs a degree-level job, a salary of at least £41,700 and B2 English. Here's what changed and who still qualifies from Nigeria, Ghana, Kenya and South Africa.",
+   "category": "work-visas",
+   "countries": [],
+   "date": "2026-10-22T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  }
+ ]
+}
