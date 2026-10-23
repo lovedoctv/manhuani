@@ -8,7 +8,7 @@ if (!defined('ABROADPATH')) {
 }
 
 const ADMIN_VERSION = '1.0.0';
-const DB_SCHEMA = 1;
+const DB_SCHEMA = 2;
 
 date_default_timezone_set('UTC');
 
@@ -40,6 +40,18 @@ function site(?string $key = null)
         }
     }
     return $key === null ? $site : ($site[$key] ?? null);
+}
+
+/** The posts in the site's code, in full (title, facts, text...), keyed by their address. */
+function code_posts(): array
+{
+    static $posts = null;
+    if ($posts === null) {
+        $json = @file_get_contents(__DIR__ . '/code-posts.json');
+        $list = $json ? json_decode($json, true) : null;
+        $posts = is_array($list) ? array_column($list, null, 'slug') : [];
+    }
+    return $posts;
 }
 
 /** The folder the site is served from, e.g. "/AbroadPath/" (always ends with "/"). */
@@ -256,6 +268,10 @@ function db_schema(PDO $pdo): void
         CREATE TABLE IF NOT EXISTS login_attempts (ip TEXT NOT NULL, attempted_at TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS login_attempts_ip ON login_attempts (ip, attempted_at);
         SQL);
+    // 2: from_code = 1 marks the edited version of a post in the site's code, at that post's address.
+    if ($version < 2) {
+        $pdo->exec('ALTER TABLE posts ADD COLUMN from_code INTEGER NOT NULL DEFAULT 0');
+    }
     $pdo->exec('PRAGMA user_version = ' . DB_SCHEMA);
 }
 

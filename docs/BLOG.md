@@ -11,7 +11,8 @@ You can add posts in two ways:
 - **In the code**: one Markdown file per post in `blog/src/content/posts/`, published with a deploy.
   See [Add a post in the code](#add-a-post-in-the-code).
 
-Both kinds look the same to readers and show up in the same lists, search and deadlines.
+Both kinds look the same to readers and show up in the same lists, search and deadlines, and both
+can be edited in the admin (see [Editing the posts in the code](#editing-the-posts-in-the-code)).
 Ad codes, CPA offers, pixel IDs, social links, countries and categories are in `blog/site.config.mjs`.
 
 The old manhwa site's code (the crawler, the old dashboard and its pages) was removed in October 2026.
@@ -59,6 +60,20 @@ Published posts get the same ads, offer boxes, share buttons and related posts a
 code, at `/AbroadPath/blog/<web-address>/`. Edit one and click **Update**; **Unpublish** takes it off
 the site and keeps it as a draft; **Delete post** removes it and its images for good.
 
+### Editing the posts in the code
+
+The admin lists the posts in the code under **Posts in the site's code**. Click **Edit** on one to
+open it in the editor with its text, facts and deadline. Your changes are saved as a separate copy:
+
+- **Save draft** keeps them private, and the site keeps showing the original.
+  **Preview the last saved version** shows them as readers will see them.
+- **Publish changes** shows your version at the post's usual address, in every list and in search.
+  The address can't change, so links people shared keep working.
+- **Show the original** or **Delete my changes** puts the version from the code back.
+
+The original stays in `blog/src/content/posts/`, untouched. If you edit a post in the admin, make
+later changes there too: an edited version hides changes made to the original in the code.
+
 ### Images
 
 JPG, PNG, WEBP or GIF, up to 8 MB. Photos are made smaller in the browser before they're sent, and
@@ -73,6 +88,8 @@ never overwrite them:
 
 - `live/posts.json`, the list of admin posts that the home, category, country, deadline and search
   pages read,
+- `live/edited/`, one small file for each post in the code whose edited version is published
+  (`.htaccess` uses it to show that version),
 - `sitemap-posts.xml`, the admin posts' sitemap (`robots.txt` points to it; submit it in Google Search
   Console next to `sitemap.xml`), and
 - `media/`, the images.

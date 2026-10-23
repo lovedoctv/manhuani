@@ -32,8 +32,36 @@ function blank_post(): array
     return [
         'id' => null, 'slug' => '', 'title' => '', 'description' => '', 'category' => site('categories')[0]['slug'],
         'countries' => [], 'body' => '', 'facts' => [], 'deadline' => null, 'official_name' => '', 'official_url' => '',
-        'checked' => gmdate('Y-m-d'), 'cover' => null, 'status' => 'draft', 'published_at' => null,
+        'checked' => gmdate('Y-m-d'), 'cover' => null, 'status' => 'draft', 'published_at' => null, 'from_code' => 0,
     ];
+}
+
+/**
+ * A post in the site's code, opened in the editor for the first time. Saving it makes the admin's
+ * own copy (from_code = 1), which replaces the original on the site once it's published.
+ */
+function code_post_draft(string $slug): ?array
+{
+    $c = code_posts()[$slug] ?? null;
+    if (!$c) {
+        return null;
+    }
+    return array_replace(blank_post(), [
+        'slug' => $c['slug'], 'title' => $c['title'], 'description' => $c['description'], 'category' => $c['category'],
+        'countries' => $c['countries'], 'body' => $c['body'], 'facts' => $c['facts'], 'deadline' => $c['deadline'],
+        'official_name' => $c['official']['name'] ?? '', 'official_url' => $c['official']['url'] ?? '',
+        'checked' => $c['checked'] ?? gmdate('Y-m-d'), 'from_code' => 1,
+    ]);
+}
+
+/** The address of the post in the code that this form edits, or null for a post of the admin's own. */
+function code_slug(?array $existing, array $in): ?string
+{
+    if ($existing) {
+        return $existing['from_code'] ? (string) $existing['slug'] : null;
+    }
+    $slug = (string) ($in['from_code'] ?? '');
+    return $slug !== '' && isset(code_posts()[$slug]) ? $slug : null;
 }
 
 function valid_date(string $d): bool
@@ -43,9 +71,10 @@ function valid_date(string $d): bool
 
 /**
  * Checks the editor form. Returns [the post's fields, errors by field name].
- * $publish asks for everything a reader needs; a draft only needs a title.
+ * $publish asks for everything a reader needs; a draft only needs a title. $codeSlug is the address
+ * of the post in the code being edited, which the edited version keeps.
  */
-function post_validate(array $in, ?array $existing, bool $publish): array
+function post_validate(array $in, ?array $existing, bool $publish, ?string $codeSlug = null): array
 {
     $e = [];
     $s = fn (string $k) => trim(str_replace("\r", '', (string) ($in[$k] ?? '')));
@@ -56,16 +85,17 @@ function post_validate(array $in, ?array $existing, bool $publish): array
         $e['title'] = 'Give the post a title of at least 5 characters.';
     }
 
-    $slug = slugify($s('slug') !== '' ? $s('slug') : $p['title']);
+    $slug = $codeSlug ?? slugify($s('slug') !== '' ? $s('slug') : $p['title']);
     $p['slug'] = $slug;
     if ($slug === '') {
         $e['slug'] = 'The web address needs at least one letter or number.';
-    } elseif (in_array($slug, taken_slugs(), true)) {
+    } elseif ($codeSlug === null && in_array($slug, taken_slugs(), true)) {
         $e['slug'] = 'A post in the site already uses this web address. Change it a little.';
     } else {
         $other = db_one('SELECT id FROM posts WHERE slug = ? AND id != ?', [$slug, (int) ($existing['id'] ?? 0)]);
         if ($other) {
-            $e['slug'] = 'Another of your posts already uses this web address.';
+            $e['slug'] = $codeSlug === null ? 'Another of your posts already uses this web address.'
+                : 'You already have an edited version of this post. Open it from the list of posts.';
         }
     }
     $p['description'] = str_limit($s('description'), 300);
@@ -152,8 +182,10 @@ function plain_to_html(string $body): string
 function post_save(?array $existing, array $in, array $files, string $action): array
 {
     $publish = $action === 'publish' || ($action === 'update' && ($existing['status'] ?? '') === 'published');
-    [$p, $errors] = post_validate($in, $existing, $publish);
+    $codeSlug = code_slug($existing, $in);
+    [$p, $errors] = post_validate($in, $existing, $publish, $codeSlug);
     $p['cover'] = $existing['cover'] ?? null;
+    $p['from_code'] = $codeSlug !== null ? 1 : 0;
 
     $upload = $files['cover'] ?? null;
     if (!$errors && is_array($upload) && ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
@@ -176,13 +208,15 @@ function post_save(?array $existing, array $in, array $files, string $action): a
         default => $existing['status'] ?? 'draft',
     };
     $now = now();
+    // The edited version of a post in the code keeps the date the original was first published.
+    $first = $existing['published_at'] ?? ($codeSlug !== null ? code_posts()[$codeSlug]['date'] . ' 00:00:00' : null);
     $row = [
         'slug' => $p['slug'], 'title' => $p['title'], 'description' => $p['description'], 'category' => $p['category'],
         'countries' => json_encode($p['countries']), 'body' => $p['body'], 'facts' => json_encode($p['facts'], JSON_UNESCAPED_UNICODE),
         'deadline' => $p['deadline'], 'official_name' => $p['official_name'], 'official_url' => $p['official_url'],
         'checked' => $p['checked'], 'cover' => $p['cover'], 'status' => $status,
-        'published_at' => $status === 'published' ? ($existing['published_at'] ?? $now) : ($existing['published_at'] ?? null),
-        'updated_at' => $now,
+        'published_at' => $status === 'published' ? ($first ?? $now) : $first,
+        'updated_at' => $now, 'from_code' => $p['from_code'],
     ];
     if ($existing) {
         $sets = implode(', ', array_map(fn ($k) => "$k = ?", array_keys($row)));

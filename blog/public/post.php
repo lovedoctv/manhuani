@@ -1,6 +1,7 @@
 <?php
 // Shows a post written in the blog admin at /blog/<slug>/ (.htaccess sends those addresses here
-// when the post has no folder of its own). Posts in the code are plain files and never come here.
+// when the post has no folder of its own). Posts in the code are plain files and only come here
+// once their edited version from the admin is published (see live/edited/ in .htaccess).
 declare(strict_types=1);
 
 define('ABROADPATH', true);
@@ -40,9 +41,10 @@ if ($preview) {
     }
 }
 
-// One address per post: /blog/<slug>/ with the slash.
+// One address per published post: /blog/<slug>/ with the slash. Previews also open as
+// post.php?slug=..., because the address of a post in the code still shows the original.
 $path = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
-if ($path !== post_path($slug)) {
+if (!$preview && $path !== post_path($slug)) {
     $query = (string) ($_SERVER['QUERY_STRING'] ?? '');
     $query = trim(preg_replace('/(^|&)slug=[^&]*/', '', $query) ?? '', '&');
     header('Location: ' . post_path($slug) . ($query !== '' ? "?$query" : ''), true, 301);
@@ -58,6 +60,7 @@ try {
 }
 header('Content-Type: text/html; charset=utf-8');
 header($preview ? 'Cache-Control: no-store' : 'Cache-Control: public, max-age=300');
+header('X-Post-Source: admin'); // the admin checks for it after publishing changes to a post in the code
 if ($preview) {
     header('X-Robots-Tag: noindex, nofollow');
 }

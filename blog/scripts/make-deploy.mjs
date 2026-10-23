@@ -24,6 +24,7 @@ fs.mkdirSync(inc, { recursive: true });
 fs.renameSync(path.join(deploy, 'admin-layout', 'index.html'), path.join(inc, 'layout.html'));
 fs.rmSync(path.join(deploy, 'admin-layout'), { recursive: true });
 fs.renameSync(path.join(deploy, 'admin-site.json'), path.join(inc, 'site.json'));
+fs.renameSync(path.join(deploy, 'admin-code-posts.json'), path.join(inc, 'code-posts.json'));
 
 // Fill in the site folder in .htaccess (e.g. /AbroadPath/).
 const base = site.base ? `${site.base.replace(/\/$/, '')}/` : '/';

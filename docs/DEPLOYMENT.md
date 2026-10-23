@@ -58,6 +58,7 @@ So you can deploy as often as you like, and posts written in the admin stay. The
 | "Update from Remote" fails | Run `ssh -T git@github.com` in cPanel Terminal. It should say "successfully authenticated". If not, re-check the deploy key. |
 | Old version still showing | Hard refresh (Ctrl+F5), or wait a few minutes for the browser cache. |
 | A post written in the admin shows "Page not found" | Check `.htaccess` is in `aduna.fit/AbroadPath` (it sends `/blog/<web-address>/` to `post.php`), and that the post is published, not a draft. |
+| A post from the code that you edited in the admin still shows the old version | Hard refresh (Ctrl+F5): pages are cached for up to 10 minutes. If the editor shows a red warning about it, deploy again so the newest `.htaccess` is in `aduna.fit/AbroadPath`. |
 
 ## Building without GitHub Actions (optional)
 

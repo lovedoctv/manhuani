@@ -224,3 +224,102 @@ test('deleting a post takes it and its images off the site', { skip }, async () 
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(site, 'live', 'posts.json'), 'utf8')), []);
   assert.ok(!fs.existsSync(path.join(site, 'media', path.basename(uploaded))), 'its images are deleted');
 });
+
+// The editor form's fields as the browser would send them.
+function formFields(html) {
+  const start = html.indexOf('<form class="editor"');
+  const form = html.slice(start, html.indexOf('</form>', start));
+  const un = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&amp;/g, '&');
+  const f = {};
+  const add = (k, v) => { if (k.endsWith('[]')) (f[k] ??= []).push(v); else f[k] = v; };
+  for (const [, a] of form.matchAll(/<input ([^>]*)>/g)) {
+    const name = a.match(/name="([^"]+)"/)?.[1];
+    const type = a.match(/type="([^"]+)"/)?.[1] ?? 'text';
+    if (!name || type === 'file' || (type === 'checkbox' && !/ checked/.test(a))) continue;
+    add(name, un(a.match(/value="([^"]*)"/)?.[1] ?? ''));
+  }
+  for (const [, k, v] of form.matchAll(/<textarea name="([^"]+)"[^>]*>([\s\S]*?)<\/textarea>/g)) add(k, un(v));
+  for (const [, k, v] of form.matchAll(/<select name="([^"]+)">([\s\S]*?)<\/select>/g)) add(k, v.match(/<option value="([^"]+)" selected>/)?.[1] ?? '');
+  return f;
+}
+
+test('a post in the code can be edited in the admin, and the original brought back', { skip }, async () => {
+  const slug = 'ielts-fee-nigeria-2026';
+  const url = `${B}blog/${slug}/`;
+  const marker = path.join(site, 'live', 'edited', slug);
+  const anon = new Browser();
+  const edited = () => anon.get(url).then((p) => /Edited in the admin/.test(p.text));
+
+  let list = await ola.get(`${B}admin/`);
+  assert.match(list.text, /Posts in the site's code \(12\)/);
+  let page = await ola.get(`${B}admin/?a=new&from=${slug}`);
+  assert.equal(page.status, 200);
+  const fields = formFields(page.text);
+  assert.equal(fields.title, 'IELTS fee in Nigeria (2026): British Council and IDP prices compared');
+  assert.equal(fields.from_code, slug);
+  assert.equal(fields.official_name, 'British Council Nigeria');
+  assert.deepEqual(fields['fact_value[]'].slice(0, 1), ['₦299,000']);
+  assert.match(fields.body, /<table>/);
+  assert.doesNotMatch(fields.body, /data-ad-slot/);
+
+  // Saved as a draft: the site keeps the original, the preview shows the changes. The address can't change.
+  let r = await ola.post(`${B}admin/?a=save`, {
+    ...fields, action: 'draft', slug: 'another-address', title: 'IELTS fee in Nigeria 2026: the new prices',
+    body: `<p>Edited in the admin.</p>${fields.body}`,
+  });
+  assert.equal(r.status, 303, r.text.slice(0, 300));
+  const id = r.location.match(/id=(\d+)/)[1];
+  assert.ok(!fs.existsSync(marker));
+  assert.equal(await edited(), false);
+  const preview = await ola.get(`${B}post.php?slug=${slug}`);
+  assert.equal(preview.status, 200);
+  assert.match(preview.text, /Preview of your changes/);
+  assert.match(preview.text, /Edited in the admin/);
+  assert.equal((await anon.get(`${B}post.php?slug=${slug}`)).status, 404);
+
+  // Published: the same address shows the edited version, everywhere the site lists it
+  page = await ola.get(`${B}admin/?a=edit&id=${id}`);
+  assert.match(page.text, /Publish changes/);
+  r = await ola.post(`${B}admin/?a=save&id=${id}`, { ...formFields(page.text), action: 'publish' });
+  assert.equal(r.status, 303);
+  assert.ok(fs.existsSync(marker));
+  const p = await anon.get(url);
+  assert.equal(p.status, 200);
+  assert.equal(p.headers.get('x-post-source'), 'admin');
+  assert.match(p.text, /<h1>IELTS fee in Nigeria 2026: the new prices<\/h1>/);
+  assert.match(p.text, /<p>Edited in the admin\.<\/p>/);
+  assert.match(p.text, /<table><thead><tr><th>/);
+  assert.match(p.text, /"datePublished":"2026-10-22/);
+  assert.match(p.text, /Official page: British Council Nigeria/);
+  const live = JSON.parse(fs.readFileSync(path.join(site, 'live', 'posts.json'), 'utf8'));
+  assert.deepEqual(live.map((x) => [x.slug, x.edits]), [[slug, true]]);
+  assert.doesNotMatch(fs.readFileSync(path.join(site, 'sitemap-posts.xml'), 'utf8'), /ielts/, 'it is in sitemap.xml already');
+  list = await ola.get(`${B}admin/`);
+  assert.match(list.text, /Edited post from the code/);
+  assert.match(list.text, /Posts in the site's code \(11\)/);
+  assert.equal((await ola.get(`${B}admin/?a=new&from=${slug}`)).location, `${B}admin/?a=edit&id=${id}`);
+
+  // "Show the original" puts the code version back and keeps the changes as a draft
+  page = await ola.get(`${B}admin/?a=edit&id=${id}`);
+  assert.match(page.text, /data-check-live="\/AbroadPath\/blog\/ielts-fee-nigeria-2026\/"/);
+  r = await ola.post(`${B}admin/?a=save&id=${id}`, { ...formFields(page.text), action: 'unpublish' });
+  assert.equal(r.status, 303);
+  assert.ok(!fs.existsSync(marker));
+  assert.equal(await edited(), false);
+
+  // Deleting the changes does the same
+  page = await ola.get(`${B}admin/?a=edit&id=${id}`);
+  r = await ola.post(`${B}admin/?a=save&id=${id}`, { ...formFields(page.text), action: 'publish' });
+  assert.equal(await edited(), true);
+  page = await ola.get(`${B}admin/?a=edit&id=${id}`);
+  assert.match(page.text, /Delete my changes/);
+  r = await ola.post(`${B}admin/?a=delete&id=${id}`, { csrf: ola.csrf(page.text) });
+  assert.equal(r.status, 303);
+  assert.ok(!fs.existsSync(marker));
+  assert.equal(await edited(), false);
+  assert.match((await anon.get(url)).text, /IELTS fee in Nigeria \(2026\)/);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(site, 'live', 'posts.json'), 'utf8')), []);
+
+  // Only posts that are really in the code can be opened this way
+  assert.equal((await ola.get(`${B}admin/?a=new&from=no-such-post`)).status, 303);
+});

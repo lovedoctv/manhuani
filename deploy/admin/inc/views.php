@@ -79,31 +79,46 @@ function status_badge(array $p): string
     return $p['status'] === 'published' ? '<span class="badge live">Published</span>' : '<span class="badge">Draft</span>';
 }
 
+/** Where a post can be seen: its address once published, and post.php for a draft's preview. */
+function preview_url(array $p): string
+{
+    return $p['status'] === 'published' ? post_path($p['slug']) : url('post.php?slug=' . rawurlencode($p['slug']));
+}
+
 function view_list(): string
 {
     $posts = admin_posts();
     $body = '<div class="page-head"><h1>Your posts</h1><a class="btn primary" href="' . h(admin_url('new')) . '">+ New post</a></div>';
     if (!$posts) {
-        $body .= '<section class="card empty"><p><b>No posts here yet.</b> Write your first one with <b>New post</b>. It goes live on the site as soon as you press Publish.</p></section>';
+        $body .= '<section class="card empty"><p><b>No posts written here yet.</b> Write one with <b>New post</b>, or edit one of the posts already on the site below. A post goes live as soon as you press Publish.</p></section>';
     } else {
         $body .= '<ul class="post-list">';
         foreach ($posts as $p) {
-            [$date, $updated] = post_dates($p);
             $view = $p['status'] === 'published' ? 'View' : 'Preview';
             $body .= '<li><div class="post-row"><a class="post-title" href="' . h(admin_url('edit', ['id' => $p['id']])) . '">' . h($p['title']) . '</a>'
-                . '<p class="meta">' . status_badge($p) . ' ' . h(category_name($p['category'])) . ' · changed ' . h(format_date($p['updated_at'])) . '</p></div>'
+                . '<p class="meta">' . status_badge($p) . ($p['from_code'] ? ' <span class="badge">Edited post from the code</span>' : '')
+                . ' ' . h(category_name($p['category'])) . ' · changed ' . h(format_date($p['updated_at'])) . '</p></div>'
                 . '<div class="row-actions"><a class="btn small" href="' . h(admin_url('edit', ['id' => $p['id']])) . '">Edit</a>'
-                . '<a class="btn small ghost" href="' . h(post_path($p['slug'])) . '" target="_blank" rel="noopener">' . $view . '</a></div></li>';
+                . '<a class="btn small ghost" href="' . h(preview_url($p)) . '" target="_blank" rel="noopener">' . $view . '</a></div></li>';
         }
         $body .= '</ul>';
     }
-    $code = site('posts');
-    $body .= '<details class="card"><summary>Posts in the site\'s code (' . count($code) . ')</summary>'
-        . '<p class="hint">These were written in the site\'s code, so they are changed there rather than here. Ask Claude to edit one, or copy it into a new post here.</p><ul class="plain">';
-    foreach ($code as $p) {
-        $body .= '<li><a href="' . h(post_path($p['slug'])) . '" target="_blank" rel="noopener">' . h($p['title']) . '</a> <span class="meta">' . h(category_name($p['category'])) . '</span></li>';
+    // The posts in the code that haven't been edited here yet
+    $mine = array_column($posts, 'slug', 'slug');
+    $code = array_filter(site('posts'), fn ($p) => !isset($mine[$p['slug']]));
+    if ($code) {
+        $body .= '<h2 class="list-title">Posts in the site\'s code (' . count($code) . ')</h2>'
+            . '<p class="hint">Click Edit to change one here. The site keeps showing the original until you publish your changes, and the original stays in the code, so you can always go back to it.</p>'
+            . '<ul class="post-list">';
+        foreach ($code as $p) {
+            $edit = admin_url('new', ['from' => $p['slug']]);
+            $body .= '<li><div class="post-row"><a class="post-title" href="' . h($edit) . '">' . h($p['title']) . '</a>'
+                . '<p class="meta"><span class="badge live">Published</span> ' . h(category_name($p['category'])) . ' · ' . h(format_date($p['updated'] ?? $p['date'])) . '</p></div>'
+                . '<div class="row-actions"><a class="btn small" href="' . h($edit) . '">Edit</a>'
+                . '<a class="btn small ghost" href="' . h(post_path($p['slug'])) . '" target="_blank" rel="noopener">View</a></div></li>';
+        }
+        $body .= '</ul>';
     }
-    $body .= '</ul></details>';
     return page('Posts', $body);
 }
 
@@ -111,6 +126,7 @@ function view_editor(array $p, array $errors = []): string
 {
     $isNew = empty($p['id']);
     $published = ($p['status'] ?? 'draft') === 'published';
+    $fromCode = !empty($p['from_code']);
     $action = admin_url('save', $isNew ? [] : ['id' => $p['id']]);
     $sel = fn (bool $on) => $on ? ' selected' : '';
     $chk = fn (bool $on) => $on ? ' checked' : '';
@@ -133,13 +149,26 @@ function view_editor(array $p, array $errors = []): string
             . '<input name="fact_value[]" value="' . h($f['value']) . '" placeholder="Value, e.g. Master\'s" aria-label="Fact value" maxlength="200"></div>';
     }
 
+    $unpublish = $fromCode
+        ? '<button class="btn ghost" name="action" value="unpublish" data-confirm="Put the original version from the code back on the site? Your changes stay here as a draft.">Show the original</button>'
+        : '<button class="btn ghost" name="action" value="unpublish" data-confirm="Take this post off the site? It stays here as a draft.">Unpublish</button>';
     $buttons = $published
-        ? '<button class="btn primary" name="action" value="update">Update</button><button class="btn ghost" name="action" value="unpublish" data-confirm="Take this post off the site? It stays here as a draft.">Unpublish</button>'
-        : '<button class="btn primary" name="action" value="publish">Publish</button><button class="btn ghost" name="action" value="draft">Save draft</button>';
+        ? '<button class="btn primary" name="action" value="update">Update</button>' . $unpublish
+        : '<button class="btn primary" name="action" value="publish">' . ($fromCode ? 'Publish changes' : 'Publish') . '</button><button class="btn ghost" name="action" value="draft">Save draft</button>';
     $view = '';
     if (!$isNew) {
-        $view = '<a class="view-link" href="' . h(post_path($p['slug'])) . '" target="_blank" rel="noopener">'
+        $view = '<a class="view-link" href="' . h(preview_url($p)) . '" target="_blank" rel="noopener">'
             . ($published ? 'View the post on the site' : 'Preview the last saved version') . ' ↗</a>';
+    }
+    if ($fromCode && !$published) {
+        $view .= '<a class="view-link" href="' . h(post_path($p['slug'])) . '" target="_blank" rel="noopener">See the original on the site ↗</a>';
+    }
+    $note = '';
+    if ($fromCode) {
+        $note = '<p class="flash note">' . ($published
+            ? 'This post is from the site\'s code. The site shows your edited version. <b>Show the original</b> puts the version from the code back.'
+            : 'This post is from the site\'s code. The site keeps showing the original until you click <b>Publish changes</b>, and the original stays in the code, so you can always go back to it.')
+            . '</p>';
     }
     $cover = '';
     if (!empty($p['cover'])) {
@@ -147,10 +176,12 @@ function view_editor(array $p, array $errors = []): string
             . '<label class="check"><input type="checkbox" name="remove_cover" value="1"> Remove this image</label>';
     }
     $limit = round(upload_limit() / 1048576, 1);
-    $body = '<div class="page-head"><h1>' . ($isNew ? 'New post' : 'Edit post') . '</h1><a href="' . h(admin_url()) . '">← All posts</a></div>'
-        . ($errors ? '<p class="flash error" role="alert">Some things need fixing before this can be saved. They\'re marked in red below.</p>' : '')
+    $body = '<div class="page-head"><h1>' . ($isNew && !$fromCode ? 'New post' : 'Edit post') . '</h1><a href="' . h(admin_url()) . '">← All posts</a></div>'
+        . ($errors ? '<p class="flash error" role="alert">Some things need fixing before this can be saved. They\'re marked in red below.</p>' : '') . $note
         . '<form class="editor" method="post" enctype="multipart/form-data" action="' . h($action) . '" data-editor'
-        . ' data-upload="' . h(admin_url('upload')) . '" data-csrf="' . h(csrf_token()) . '" data-max-mb="' . h((string) $limit) . '" data-new="' . ($isNew ? '1' : '0') . '">' . csrf_field()
+        . ' data-upload="' . h(admin_url('upload')) . '" data-csrf="' . h(csrf_token()) . '" data-max-mb="' . h((string) $limit) . '" data-new="' . ($isNew && !$fromCode ? '1' : '0') . '"'
+        . ($fromCode && $published ? ' data-check-live="' . h(post_path($p['slug'])) . '"' : '') . '>' . csrf_field()
+        . ($isNew && $fromCode ? '<input type="hidden" name="from_code" value="' . h($p['slug']) . '">' : '')
         . '<div class="editor-main">'
         . '<label class="title-field">Title<input name="title" value="' . h($p['title']) . '" required maxlength="200" placeholder="e.g. Chevening Scholarship 2027: who can apply and how"' . (isset($errors['title']) ? ' aria-invalid="true"' : '') . '></label>' . error_text($errors, 'title')
         . '<div class="field"><span class="label">Post</span>'
@@ -189,12 +220,13 @@ function view_editor(array $p, array $errors = []): string
         . '<label>Official page link<input type="url" name="official_url" value="' . h($p['official_url']) . '" placeholder="https://"></label>' . error_text($errors, 'official_url')
         . '<label>Facts checked on<input type="date" name="checked" value="' . h($p['checked']) . '" required></label>' . error_text($errors, 'checked')
         . '</section>'
-        . '<section class="box"><label>Web address<span class="slug"><span class="slug-base">' . h(url('blog/')) . '</span><input name="slug" value="' . h($p['slug']) . '" maxlength="80" pattern="[a-z0-9\\-]*" data-slug' . (isset($errors['slug']) ? ' aria-invalid="true"' : '') . '></span></label>'
-        . '<p class="hint">Made from the title. Changing it after publishing breaks links people already shared.</p>' . error_text($errors, 'slug') . '</section>'
+        . '<section class="box"><label>Web address<span class="slug"><span class="slug-base">' . h(url('blog/')) . '</span><input name="slug" value="' . h($p['slug']) . '" maxlength="80" pattern="[a-z0-9\\-]*" data-slug' . ($fromCode ? ' readonly' : '') . (isset($errors['slug']) ? ' aria-invalid="true"' : '') . '></span></label>'
+        . '<p class="hint">' . ($fromCode ? 'This post keeps its address, so links to it keep working.' : 'Made from the title. Changing it after publishing breaks links people already shared.') . '</p>' . error_text($errors, 'slug') . '</section>'
         . '</aside></form>';
     if (!$isNew) {
-        $body .= '<form method="post" action="' . h(admin_url('delete', ['id' => $p['id']])) . '" class="danger-zone" data-confirm="Delete this post for good? This can\'t be undone.">'
-            . csrf_field() . '<button type="submit" class="btn danger">Delete post</button></form>';
+        $body .= '<form method="post" action="' . h(admin_url('delete', ['id' => $p['id']])) . '" class="danger-zone" data-confirm="'
+            . ($fromCode ? 'Delete your changes to this post? The original from the code goes back on the site.' : 'Delete this post for good? This can\'t be undone.') . '">'
+            . csrf_field() . '<button type="submit" class="btn danger">' . ($fromCode ? 'Delete my changes' : 'Delete post') . '</button></form>';
     }
     return page($isNew ? 'New post' : 'Edit: ' . $p['title'], $body);
 }

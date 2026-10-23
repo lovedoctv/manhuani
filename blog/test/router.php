@@ -14,8 +14,8 @@ if (preg_match('#^' . $base . 'media/.*\.(php|html?|svg|js)$#i', $path)) {
     http_response_code(403);
     return true;
 }
-// RewriteRule ^blog/([a-z0-9-]+)/?$ post.php?slug=$1 (when there's no folder)
-if (preg_match('#^' . $base . 'blog/([a-z0-9-]+)/?$#', $path, $m) && !is_dir("$root{$base}blog/{$m[1]}")) {
+// RewriteRule ^blog/([a-z0-9-]+)/?$ post.php?slug=$1 (when there's no folder, or the admin marked the post as edited)
+if (preg_match('#^' . $base . 'blog/([a-z0-9-]+)/?$#', $path, $m) && (!is_dir("$root{$base}blog/{$m[1]}") || is_file("$root{$base}live/edited/{$m[1]}"))) {
     $_GET['slug'] = $m[1];
     $_SERVER['SCRIPT_NAME'] = $base . 'post.php';
     require "$root{$base}post.php";

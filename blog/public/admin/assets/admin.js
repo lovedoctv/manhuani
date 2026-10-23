@@ -256,4 +256,17 @@
     const img = Object.assign(document.createElement('img'), { src: URL.createObjectURL(file), alt: 'New cover image', className: 'cover-preview' });
     cover.before(img);
   });
+
+  // A post from the site's code with published changes: check that its address really shows them
+  // (post.php marks the pages it makes). If the server skips the .htaccess rule, the original stays up.
+  const live = form.dataset.checkLive;
+  if (live) {
+    fetch(live, { cache: 'no-store', credentials: 'omit' }).then((r) => {
+      if (!r.ok || r.headers.get('X-Post-Source') === 'admin') return;
+      const warn = Object.assign(document.createElement('p'), { className: 'flash error',
+        textContent: 'Your changes are saved, but the site still shows the original version of this post. Deploy the site again in cPanel. If it still happens, the server is skipping a rule in .htaccess.' });
+      warn.setAttribute('role', 'alert');
+      form.before(warn);
+    }).catch(() => {});
+  }
 })();

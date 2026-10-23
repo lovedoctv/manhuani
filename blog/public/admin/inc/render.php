@@ -58,6 +58,7 @@ function post_summary(array $p): array
     return [
         'slug' => $p['slug'], 'title' => $p['title'], 'description' => $p['description'], 'category' => $p['category'],
         'countries' => $p['countries'], 'date' => $date, 'updated' => $updated, 'deadline' => $p['deadline'] ?: null,
+        'from_code' => (bool) ($p['from_code'] ?? false),
     ];
 }
 
@@ -65,7 +66,11 @@ function post_summary(array $p): array
 function related_posts(array $post, int $limit = 4): array
 {
     $all = array_map('post_summary', published_posts());
+    $mine = array_column($all, 'slug', 'slug');
     foreach (site('posts') as $p) {
+        if (isset($mine[$p['slug']])) {
+            continue; // edited in the admin: its edited version is already in the list
+        }
         $p['date'] = substr((string) $p['date'], 0, 10);
         $p['updated'] = $p['updated'] ? substr($p['updated'], 0, 10) : null;
         $p['deadline'] = $p['deadline'] ? substr($p['deadline'], 0, 10) : null;
@@ -138,7 +143,10 @@ function render_post_page(array $p, bool $preview = false): string
 
     if ($preview) {
         $html .= '<p class="preview-note small">'
-            . 'Preview: this post is a draft, so only you can see it. <a href="' . h(url('admin/?a=edit&id=' . (int) $p['id'])) . '">Back to the editor</a></p>';
+            . (!empty($p['from_code'])
+                ? 'Preview of your changes. Only you can see them: the site shows the original until you publish them. '
+                : 'Preview: this post is a draft, so only you can see it. ')
+            . '<a href="' . h(url('admin/?a=edit&id=' . (int) $p['id'])) . '">Back to the editor</a></p>';
     }
 
     $html .= '<article class="prose" data-post="' . h($slug) . '" data-category="' . h($cat) . '">'
@@ -217,14 +225,20 @@ function render_post_page(array $p, bool $preview = false): string
 
 /**
  * Rewrites the files the rest of the site reads after any change to the admin posts:
- * live/posts.json (lists, deadlines and search pick up new posts from it) and sitemap-posts.xml.
+ * live/posts.json (lists, deadlines and search pick up new posts from it), sitemap-posts.xml, and
+ * one file in live/edited/ for each post in the code whose edited version is published, which
+ * tells .htaccess to show that version (through post.php) instead of the original.
  */
 function write_live_files(): void
 {
     $items = [];
     $urls = [];
+    $edited = [];
     foreach (published_posts() as $p) {
         $s = post_summary($p);
+        if ($s['from_code']) {
+            $edited[$s['slug']] = true;
+        }
         $items[] = [
             'slug' => $s['slug'], 'url' => post_path($s['slug']), 'title' => $s['title'], 'description' => $s['description'],
             'category' => $s['category'], 'categoryName' => category_name($s['category']), 'categoryUrl' => url('category/' . $s['category'] . '/'),
@@ -232,9 +246,23 @@ function write_live_files(): void
             'countryNames' => array_values(array_filter(array_map(fn ($c) => country_info($c)['name'] ?? null, $s['countries']))),
             'flags' => implode(' ', array_filter(array_map(fn ($c) => country_info($c)['flag'] ?? null, $s['countries']))),
             'date' => iso_date($s['date']), 'updated' => $s['updated'] ? iso_date($s['updated']) : null,
-            'deadline' => $s['deadline'] ? iso_date($s['deadline']) : null,
+            'deadline' => $s['deadline'] ? iso_date($s['deadline']) : null, 'edits' => $s['from_code'],
         ];
-        $urls[] = '  <url><loc>' . h(abs_url('blog/' . $s['slug'] . '/')) . '</loc><lastmod>' . iso_date($s['updated'] ?? $s['date']) . '</lastmod></url>';
+        // Posts in the code are in the main sitemap.xml already.
+        if (!$s['from_code']) {
+            $urls[] = '  <url><loc>' . h(abs_url('blog/' . $s['slug'] . '/')) . '</loc><lastmod>' . iso_date($s['updated'] ?? $s['date']) . '</lastmod></url>';
+        }
+    }
+    $dir = site_dir() . '/live/edited';
+    foreach (is_dir($dir) ? (scandir($dir) ?: []) : [] as $f) {
+        if (preg_match('/^[a-z0-9-]+$/', $f) && !isset($edited[$f])) {
+            @unlink("$dir/$f");
+        }
+    }
+    foreach (array_keys($edited) as $slug) {
+        if (!is_file("$dir/$slug")) {
+            write_atomic("$dir/$slug", "Edited in the blog admin\n");
+        }
     }
     write_atomic(site_dir() . '/live/posts.json', json_encode($items, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . "\n");
     write_atomic(site_dir() . '/sitemap-posts.xml', "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"

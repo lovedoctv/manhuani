@@ -83,16 +83,22 @@ document.querySelectorAll<HTMLElement>('[data-deadline]').forEach((el) => {
 // Posts written in the blog admin (/admin/) aren't part of the build: post.php shows their pages, and
 // the admin keeps a list of them in live/posts.json. Lists marked data-live pick them up from there:
 // "cards" (post grids, with data-category, data-country and data-limit) and "deadlines" (deadline lists).
+// It also lists posts in the code that were edited in the admin (edits: true): their cards anywhere on
+// the page are swapped for the edited title, summary and dates.
 type LivePost = {
   slug: string; url: string; title: string; description: string; category: string; categoryName: string;
   categoryUrl: string; countries: string[]; flags: string; date: string; updated: string | null; deadline: string | null;
+  edits?: boolean;
 };
 const liveLists = document.querySelectorAll<HTMLElement>('[data-live]');
-if (liveLists.length) {
+if (liveLists.length || document.querySelector('.post-card, .deadline-list')) {
   const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
   fetch(`${base}live/posts.json`, { cache: 'no-cache' })
     .then((r) => (r.ok ? r.json() : []))
-    .then((posts: LivePost[]) => liveLists.forEach((list) => addLivePosts(list, posts)))
+    .then((posts: LivePost[]) => {
+      showEdits(posts);
+      liveLists.forEach((list) => addLivePosts(list, posts));
+    })
     .catch(() => {});
 }
 
@@ -124,10 +130,28 @@ function liveDeadline(p: LivePost) {
   return el;
 }
 
+const pathOf = (url: string) => new URL(url, location.href).pathname;
+
+// Posts in the code with an edited version: data-live lists drop the original (the edited one is
+// added back in its place in the order, if it still belongs there), and other cards are swapped.
+function showEdits(posts: LivePost[]) {
+  const edited = new Map(posts.filter((p) => p.edits).map((p) => [pathOf(p.url), p]));
+  if (!edited.size) return;
+  document.querySelectorAll<HTMLAnchorElement>('.post-card h3 a, .deadline-list li > a').forEach((a) => {
+    const p = edited.get(a.pathname);
+    const item = a.closest<HTMLElement>('.post-card, li');
+    if (!p || !item) return;
+    if (item.parentElement?.closest('[data-live]')) item.remove();
+    else if (item.matches('.post-card')) item.replaceWith(liveCard(p));
+    else if (p.deadline && daysUntil(p.deadline) >= 0) item.replaceWith(liveDeadline(p));
+    else item.remove();
+  });
+}
+
 function addLivePosts(list: HTMLElement, posts: LivePost[]) {
   const { live, category, country, limit } = list.dataset;
   const shown = new Set([...list.querySelectorAll<HTMLAnchorElement>('h3 a, li > a')].map((a) => a.pathname));
-  let picked = posts.filter((p) => !shown.has(new URL(p.url, location.href).pathname)
+  let picked = posts.filter((p) => !shown.has(pathOf(p.url))
     && (!category || p.category === category)
     && (!country || !p.countries.length || p.countries.includes(country)));
   if (live === 'deadlines') picked = picked.filter((p) => p.deadline && daysUntil(p.deadline) >= 0);

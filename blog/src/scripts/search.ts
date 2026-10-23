@@ -16,12 +16,15 @@ async function run() {
     status.textContent = 'Type a country, scholarship or visa name.';
     return;
   }
-  const items: Item[] = await fetch(results.dataset.index!).then((r) => r.json());
+  let items: Item[] = await fetch(results.dataset.index!).then((r) => r.json());
   // Posts written in the blog admin are listed in live/posts.json (see scripts/site.ts).
   const live: { title: string; description: string; url: string; categoryName: string; countryNames: string[] }[] =
     await fetch(results.dataset.index!.replace(/search\.json$/, 'live/posts.json'), { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : []))
       .catch(() => []);
+  // A post in the code edited in the admin is in both lists: keep the edited version.
+  const urls = new Set(live.map((p) => p.url));
+  items = items.filter((it) => !urls.has(it.url));
   items.unshift(...live.map((p) => ({ title: p.title, description: p.description, url: p.url, category: p.categoryName, countries: p.countryNames })));
   const words = q.split(/\s+/);
   const hits = items.filter((it) => {

@@ -39,6 +39,9 @@ button.link { background: none; border: 0; padding: 0; font: inherit; font-weigh
 .flash { padding: 10px 14px; border-radius: 10px; margin: 0 0 16px; font-weight: 600; }
 .flash.ok { background: var(--primary-soft); color: var(--primary-dark); border: 1px solid #b6dcd2; }
 .flash.error { background: var(--danger-soft); color: var(--danger); border: 1px solid #f3c1bb; }
+.flash.note { background: #fff8e6; color: #5c4300; border: 1px solid #f0d89a; font-weight: 500; }
+.list-title { font-size: 1.1rem; margin: 28px 0 4px; }
+.list-title + .hint { margin: 0 0 12px; }
 
 /* Forms */
 label, .label { display: block; font-weight: 700; font-size: 0.92rem; margin: 14px 0 0; }
@@ -105,6 +108,8 @@ ul.plain li { margin: 4px 0; }
 .box-title { margin: 0 0 12px; }
 .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .view-link { display: block; margin-top: 12px; font-size: 0.9rem; font-weight: 600; }
+.view-link + .view-link { margin-top: 6px; }
+input[readonly] { color: var(--muted); }
 .fact-row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 6px; margin-top: 6px; }
 .fact-row input { margin: 0; padding: 8px 10px; font-size: 0.92rem; }
 .facts + .btn { margin-top: 8px; }

@@ -153,7 +153,21 @@ switch ($a) {
         go();
 
     case 'new':
-        echo view_editor(blank_post());
+        // ?from=<address>: open a post in the site's code in the editor (or its edited version, if it has one).
+        $from = (string) ($_GET['from'] ?? '');
+        if ($from === '') {
+            echo view_editor(blank_post());
+            exit;
+        }
+        if ($mine = db_one('SELECT id FROM posts WHERE slug = ?', [$from])) {
+            go('edit', ['id' => $mine['id']]);
+        }
+        $draft = code_post_draft($from);
+        if (!$draft) {
+            flash('error', 'That post is no longer in the site\'s code.');
+            go();
+        }
+        echo view_editor($draft);
         exit;
 
     case 'edit':
@@ -185,7 +199,12 @@ switch ($a) {
             exit;
         }
         $saved = post_by_id($savedId);
-        $messages = [
+        $messages = $saved['from_code'] ? [
+            'publish' => 'Published. The site shows your edited version of this post now.',
+            'update' => 'Saved. The changes are live on the site.',
+            'unpublish' => 'The original from the code is back on the site. Your changes are kept here as a draft.',
+            'draft' => 'Draft saved. The site shows the original until you publish your changes.',
+        ] : [
             'publish' => 'Published. The post is live on the site now.',
             'update' => 'Saved. The changes are live on the site.',
             'unpublish' => 'Taken off the site. The post is a draft again.',
@@ -197,7 +216,7 @@ switch ($a) {
     case 'delete':
         if ($isPost && ($post = post_by_id($id))) {
             post_delete($id);
-            flash('ok', 'Deleted "' . $post['title'] . '".');
+            flash('ok', $post['from_code'] ? 'Deleted your changes to "' . $post['title'] . '". The original is back on the site.' : 'Deleted "' . $post['title'] . '".');
         }
         go();
 
