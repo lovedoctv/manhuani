@@ -40,7 +40,7 @@ export default {
   // Google AdSense publisher ID, like 'ca-pub-1234567890123456' (AdSense > Account > Account information).
   // When it's set, every page gets the AdSense code (for Auto ads, and so Google can verify the site),
   // the privacy page explains Google's ad cookies, and each deploy writes https://aduna.fit/ads.txt.
-  adsense: '',
+  adsense: 'ca-pub-7485485603555101',
   // Extra lines for https://aduna.fit/ads.txt, if another ad network asks for them, one string per line.
   adsTxt: [],
   // true hides every code in ads: below (Monetag, Adsterra) without deleting it, for example while Google
