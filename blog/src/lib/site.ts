@@ -16,6 +16,9 @@ export const url = (path: string) => {
 
 export const absoluteUrl = (path: string) => new URL(url(path), site.url).toString();
 
+/** One ad code from site.config.mjs (ads.<name>), or '' while the slot is empty or adsPaused is on. */
+export const adCode = (name: keyof typeof site.ads) => (site.adsPaused ? '' : (site.ads[name] ?? '').trim());
+
 export const postUrl = (slug: string) => url(`/blog/${slug}/`);
 export const categoryUrl = (slug: string) => url(`/category/${slug}/`);
 export const countryUrl = (slug: string) => url(`/country/${slug}/`);

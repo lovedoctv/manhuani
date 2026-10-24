@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import site from '../site.config.mjs';
+import { adsensePub } from '../src/lib/adsense.mjs';
 
 const root = path.resolve(import.meta.dirname, '..', '..');
 const dist = path.join(root, 'blog', 'dist');
@@ -30,6 +31,15 @@ fs.renameSync(path.join(deploy, 'admin-code-posts.json'), path.join(inc, 'code-p
 const base = site.base ? `${site.base.replace(/\/$/, '')}/` : '/';
 const htaccess = path.join(deploy, '.htaccess');
 fs.writeFileSync(htaccess, fs.readFileSync(htaccess, 'utf8').replaceAll('__BASE__', base));
+
+// ads.txt for the domain root: .cpanel.yml copies it to https://aduna.fit/ads.txt on each deploy.
+// It holds the AdSense line once adsense is set, plus any adsTxt lines from site.config.mjs.
+const pub = adsensePub();
+const adsTxt = [...(pub ? [`google.com, ${pub}, DIRECT, f08c47fec0942fa0`] : []), ...(site.adsTxt ?? [])];
+fs.writeFileSync(
+  path.join(deploy, 'ads.txt'),
+  ['# Written by the AbroadPath build from adsense and adsTxt in blog/site.config.mjs.', ...adsTxt, ''].join('\n'),
+);
 
 // Safety net: refuse to ship anything that looks private.
 const banned = [/^\.git$/, /^\.env/, /^node_modules$/, /^\.cpanel\.yml$/, /^package(-lock)?\.json$/, /^src$/];

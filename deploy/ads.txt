@@ -1,0 +1,2 @@
+# Written by the AbroadPath build from adsense and adsTxt in blog/site.config.mjs.
+google.com, pub-7485485603555101, DIRECT, f08c47fec0942fa0

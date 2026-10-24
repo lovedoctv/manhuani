@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { allPosts, absoluteUrl, BASE } from '../lib/site';
+import { allPosts, absoluteUrl, adCode, BASE } from '../lib/site';
 import site from '../../site.config.mjs';
 
 // What the blog admin needs to know about the site: categories, countries, the in-article ad codes,
@@ -14,7 +14,7 @@ export const GET: APIRoute = async () => {
     ogImage: absoluteUrl('/og-image.png'),
     categories: site.categories.map((c) => ({ slug: c.slug, name: c.name })),
     countries: site.countries.map((c) => ({ slug: c.slug, name: c.name, flag: c.flag })),
-    ads: { inArticle: site.ads.inArticle.trim(), inArticle2: site.ads.inArticle2.trim(), afterArticle: site.ads.afterArticle.trim() },
+    ads: { inArticle: adCode('inArticle'), inArticle2: adCode('inArticle2'), afterArticle: adCode('afterArticle') },
     offers: site.offers,
     posts: (await allPosts()).map((p) => ({
       slug: p.id,

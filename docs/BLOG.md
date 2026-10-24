@@ -130,6 +130,29 @@ The post itself, in Markdown. Link to other posts like [this](/blog/ielts-fee-ni
 - Deadlines that have passed drop off the Deadlines page and home page on their own.
 - When you re-check a post, change `checked:` (and `updated: 2026-12-01` if you changed the text).
 
+## Google AdSense
+
+1. Apply at [adsense.google.com](https://adsense.google.com) with the Google account you'll keep.
+   Google allows one AdSense account per person, so if you already have one, add the site there.
+   - **Website:** `aduna.fit`. AdSense takes the domain, not the `/AbroadPath/` folder.
+   - **Country:** Nigeria. It sets how you're paid and can't be changed later. The payee name must
+     match your bank account name exactly.
+2. Copy your publisher ID (`ca-pub-` and 16 digits) into `adsense:` in `blog/site.config.mjs`, then
+   publish the change. Every page gets the AdSense code, the privacy page gets the Google ad cookies
+   section, and the deploy writes `https://aduna.fit/ads.txt` with Google's line.
+3. In AdSense, open **Sites**, choose `aduna.fit`, tick that you've added the code and ads.txt, and
+   click **Request review**.
+4. Once approved, turn on **Auto ads** for the site in AdSense. To place a unit yourself instead, paste
+   its code into one of the slots below.
+
+While Google reviews the site, `adsPaused: true` hides every code in `ads:` (Monetag's In-Page Push,
+Vignette and Push), without deleting them, because Google rejects sites with pop-ups and notification
+prompts. Set it to `false` to bring them back. AdSense itself isn't affected by it.
+
+`https://aduna.fit/` itself has a home page that sends visitors to `/AbroadPath/`
+(`blog/server/root-index.php`, put there by the deploy). Before, it listed the domain's folders,
+which AdSense reviews as an empty site.
+
 ## Ad codes (Adsterra or Monetag)
 
 Paste each code between the backticks in `ads:` in `blog/site.config.mjs`, exactly as the dashboard
@@ -173,9 +196,10 @@ stops serving. If Monetag gives you a new one, replace this file and deploy.
 
 ### ads.txt
 
-If a network asks for an `ads.txt` file, it must sit at `https://aduna.fit/ads.txt`, which is the
-`aduna.fit` folder in cPanel File Manager, not the `AbroadPath` folder. The deploy never touches
-that folder, so upload it there once with File Manager.
+`https://aduna.fit/ads.txt` is written by each deploy from `blog/site.config.mjs`: Google's line once
+`adsense:` is set, plus every line in `adsTxt:`. If another network asks for an ads.txt line, add it to
+`adsTxt:` (for example `'monetag.com, 12345, DIRECT'`), not in File Manager, because the next deploy
+replaces the file.
 
 ## CPA offers
 

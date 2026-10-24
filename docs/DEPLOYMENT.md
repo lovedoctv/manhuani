@@ -7,7 +7,7 @@ The site lives at **https://aduna.fit/AbroadPath/**. The website that goes onlin
 1. You (or Claude) change the site and push to the `main` branch on GitHub.
 2. A GitHub Action rebuilds `deploy/` and commits it, so you don't need Node.js installed.
 3. In cPanel, **Git Version Control** pulls the latest commit from GitHub.
-4. **Deploy HEAD Commit** runs `.cpanel.yml`, which copies `deploy/` into the `AbroadPath` folder inside aduna.fit's document root (`$HOME/aduna.fit/AbroadPath/`). It also puts a redirect `.htaccess` in the old `manhuani` folder and Monetag's `sw.js` at the domain root.
+4. **Deploy HEAD Commit** runs `.cpanel.yml`, which copies `deploy/` into the `AbroadPath` folder inside aduna.fit's document root (`$HOME/aduna.fit/AbroadPath/`). It also puts a redirect `.htaccess` in the old `manhuani` folder, and Monetag's `sw.js` and the `ads.txt` file at the domain root. If the domain root has no `index.php`, it adds one that sends `https://aduna.fit/` to `/AbroadPath/`.
 
 ## One-time setup
 
@@ -22,7 +22,7 @@ You have already done steps 1 and 2 (SSH key and clone). They're listed here for
    - It's `/aduna.fit` (an addon domain), so `.cpanel.yml` deploys to `$HOME/aduna.fit/AbroadPath/`. `$HOME` is your cPanel home folder, shown as "Home Directory" in the **General Information** panel on the cPanel home page.
    - If the document root ever changes (for example to `/public_html`), edit the `DEPLOYPATH` line in `.cpanel.yml` to match, such as `export DEPLOYPATH=$HOME/public_html/AbroadPath/`. Keep the slash at the end.
 4. **Domain and folder settings.** `blog/site.config.mjs` has `url: 'https://aduna.fit'` and `base: '/AbroadPath'`. If you ever move the site, change these two lines and the `DEPLOYPATH` in `.cpanel.yml`.
-5. **Nothing else on aduna.fit is touched.** Deploying only writes inside the `AbroadPath` folder, the old `manhuani` and `abroadpath` folders' `.htaccess`, and `aduna.fit/sw.js`.
+5. **Nothing else on aduna.fit is touched.** Deploying only writes inside the `AbroadPath` folder, the old `manhuani` and `abroadpath` folders' `.htaccess`, `aduna.fit/sw.js`, `aduna.fit/ads.txt`, and `aduna.fit/index.php` when there isn't one yet.
 
 ## Every time you publish
 
