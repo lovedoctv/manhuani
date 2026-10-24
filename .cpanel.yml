@@ -13,8 +13,12 @@
 # The site used to live at https://aduna.fit/manhuani/. Two of the tasks below put a small
 # redirect file (blog/server/old-folder.htaccess) in that old folder and in a lowercase
 # abroadpath folder, so old links and typed addresses land on the same page under /AbroadPath/.
-# The last task copies Monetag's sw.js to the domain root (https://aduna.fit/sw.js), where Monetag
-# looks for it to verify the site and run its ads. Nothing else outside DEPLOYPATH is touched.
+# Monetag's sw.js is copied to the domain root (https://aduna.fit/sw.js), where Monetag looks for it
+# to verify the site and run its ads. ads.txt (built from adsense and adsTxt in site.config.mjs) is
+# copied to https://aduna.fit/ads.txt, where Google AdSense and other networks look for it.
+# The last task gives https://aduna.fit/ a home page that sends visitors to /AbroadPath/, instead of a
+# list of the domain's folders. It only runs when the domain has no index.php yet, so it never replaces
+# one. Nothing else outside DEPLOYPATH is touched.
 deployment:
   tasks:
     - export DEPLOYPATH=$HOME/aduna.fit/AbroadPath/
@@ -25,3 +29,5 @@ deployment:
     - /bin/cp blog/server/old-folder.htaccess $HOME/aduna.fit/manhuani/.htaccess
     - /bin/cp blog/server/old-folder.htaccess $HOME/aduna.fit/abroadpath/.htaccess
     - /bin/cp deploy/sw.js $HOME/aduna.fit/sw.js
+    - /bin/cp deploy/ads.txt $HOME/aduna.fit/ads.txt
+    - /bin/test -e $HOME/aduna.fit/index.php || /bin/cp blog/server/root-index.php $HOME/aduna.fit/index.php

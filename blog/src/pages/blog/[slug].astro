@@ -6,7 +6,7 @@ import OfferBox from '../../components/OfferBox.astro';
 import ShareBar from '../../components/ShareBar.astro';
 import AdSlot from '../../components/AdSlot.astro';
 import {
-  url, absoluteUrl, postUrl, categoryUrl, countryUrl, category, country, formatDate, daysLeft, allPosts, relatedPosts, type Post,
+  url, absoluteUrl, adCode, postUrl, categoryUrl, countryUrl, category, country, formatDate, daysLeft, allPosts, relatedPosts, type Post,
 } from '../../lib/site';
 import site from '../../../site.config.mjs';
 
@@ -16,7 +16,7 @@ export async function getStaticPaths() {
 const { post } = Astro.props as { post: Post };
 // The post's HTML, with each in-article ad marker replaced by its code (or removed while the slot is empty).
 const body = (post.rendered?.html ?? '').replace(/<div data-ad-slot="(\w+)"><\/div>/g, (_, name: keyof typeof site.ads) => {
-  const code = site.ads[name]?.trim();
+  const code = adCode(name);
   return code ? `<div class="ad-slot ad-${name}">${code}</div>` : '';
 });
 const d = post.data;

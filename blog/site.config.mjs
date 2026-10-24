@@ -37,6 +37,16 @@ export default {
     { slug: 'guides', name: 'Guides', blurb: 'CVs, statements of purpose, proof of funds and interviews.' },
   ],
 
+  // Google AdSense publisher ID, like 'ca-pub-1234567890123456' (AdSense > Account > Account information).
+  // When it's set, every page gets the AdSense code (for Auto ads, and so Google can verify the site),
+  // the privacy page explains Google's ad cookies, and each deploy writes https://aduna.fit/ads.txt.
+  adsense: '',
+  // Extra lines for https://aduna.fit/ads.txt, if another ad network asks for them, one string per line.
+  adsTxt: [],
+  // true hides every code in ads: below (Monetag, Adsterra) without deleting it, for example while Google
+  // reviews the site for AdSense. AdSense itself isn't affected. Set it back to false to show them again.
+  adsPaused: true,
+
   // Ad codes from Adsterra or Monetag. Paste each code exactly as the dashboard gives it,
   // between the backticks. An empty slot shows nothing, so the site works before you add any.
   ads: {

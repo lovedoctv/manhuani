@@ -1,0 +1,1 @@
+# Written by the AbroadPath build from adsense and adsTxt in blog/site.config.mjs.

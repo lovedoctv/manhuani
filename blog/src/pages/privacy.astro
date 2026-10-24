@@ -2,12 +2,20 @@
 import TextPage from '../components/TextPage.astro';
 import { url } from '../lib/site';
 import site from '../../site.config.mjs';
+import { adsensePub } from '../lib/adsense.mjs';
+const adsense = adsensePub();
 ---
 <TextPage title="Privacy Policy" path={url('/privacy/')} description={`How ${site.name} handles your data.`}>
   <p class="muted small">Last updated: October 2026</p>
   <p>{site.name} doesn't require an account, and we don't ask for your name, email or phone number to read the site.</p>
   <h2>Advertising</h2>
   <p>We show ads from third-party ad networks such as Adsterra and Monetag. These networks may use cookies and similar technologies to show ads, limit how often you see them and measure how they perform. They process this data under their own privacy policies.</p>
+  {adsense && (
+    <>
+      <h2>Google AdSense</h2>
+      <p>We show ads from Google AdSense. Google and its partners use cookies to show you ads based on your visits to this site and other sites on the internet, and to measure how the ads perform. You can turn off personalised ads in Google's <a href="https://adssettings.google.com">Ads Settings</a>, and opt out of other companies' ad cookies at <a href="https://www.aboutads.info/choices/">aboutads.info</a>. Google explains <a href="https://policies.google.com/technologies/partner-sites">how it uses information from sites that use its services</a>.</p>
+    </>
+  )}
   <h2>Measuring our own ads</h2>
   <p>When we advertise {site.name} on Facebook, Instagram or TikTok, we may use the Meta Pixel and the TikTok Pixel. They tell those platforms that someone who saw our ad visited a page or clicked a link, so we can measure our ads. Meta and TikTok process this data under their own privacy policies, and you can manage ad preferences in your Facebook, Instagram and TikTok settings.</p>
   <h2>Visitor counter</h2>

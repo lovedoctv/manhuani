@@ -1,7 +1,8 @@
 ---
-// Prints one ad code from site.config.mjs (ads.<name>). Prints nothing while the slot is empty.
+// Prints one ad code from site.config.mjs (ads.<name>). Prints nothing while the slot is empty or ads are paused.
 import site from '../../site.config.mjs';
+import { adCode } from '../lib/site';
 interface Props { name: keyof typeof site.ads }
-const code = site.ads[Astro.props.name]?.trim();
+const code = adCode(Astro.props.name);
 ---
 {code && <div class:list={['ad-slot', `ad-${Astro.props.name}`]} set:html={code} />}

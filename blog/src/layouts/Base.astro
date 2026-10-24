@@ -1,5 +1,6 @@
 ---
-import { url, absoluteUrl } from '../lib/site';
+import { url, absoluteUrl, adCode } from '../lib/site';
+import { adsensePub } from '../lib/adsense.mjs';
 import '../styles/global.css';
 import site from '../../site.config.mjs';
 import Header from '../components/Header.astro';
@@ -23,8 +24,9 @@ const fullTitle = title ? `${title} | ${site.name}` : `${site.name}: ${site.tagl
 const canonical = Astro.props.canonical ?? new URL(Astro.url.pathname, site.url).toString();
 const ogImage = absoluteUrl(image);
 const ld = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
-const adHead = site.ads.head.trim();
-const adBodyEnd = site.ads.bodyEnd.trim();
+const adHead = adCode('head');
+const adBodyEnd = adCode('bodyEnd');
+const adsense = adsensePub();
 const quietSources = site.quietSources.map((s) => s.toLowerCase());
 ---
 <!doctype html>
@@ -54,6 +56,12 @@ const quietSources = site.quietSources.map((s) => s.toLowerCase());
 
     {ld.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj)} />)}
     <Pixels />
+    {adsense && (
+      <>
+        <meta name="google-adsense-account" content={`ca-${adsense}`} />
+        <script is:inline async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-${adsense}`} crossorigin="anonymous"></script>
+      </>
+    )}
     {adHead && <Fragment set:html={adHead} />}
   </head>
   <body>
