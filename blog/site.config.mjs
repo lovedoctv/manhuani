@@ -13,7 +13,7 @@ export default {
     'Fully funded scholarships, study abroad guides and work visa routes for Nigerians, South Africans, Kenyans, Ghanaians, Zimbabweans and Zambians, checked against official sources.',
   language: 'en',
   // Shown on the Contact page. Leave empty to hide it.
-  contactEmail: '',
+  contactEmail: 'contact@aduna.fit',
   // Posts per page on /blog/ and on category and country pages.
   perPage: 12,
 
