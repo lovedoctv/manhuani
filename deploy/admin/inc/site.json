@@ -69,6 +69,71 @@
  "offers": [],
  "posts": [
   {
+   "slug": "canada-express-entry-high-wage-points-2026",
+   "title": "Canada Express Entry from 3 November 2026: new points for high-wage jobs, no LMIA needed",
+   "description": "From 3 November 2026, Express Entry gives up to 100 extra points for a job offer in a high-wage occupation, and the offer no longer needs an LMIA. Here's who gains and what to do now.",
+   "category": "work-visas",
+   "countries": [],
+   "date": "2026-10-27T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "cv-for-jobs-abroad-uk-canada-germany",
+   "title": "How to write a CV for jobs abroad: UK, Canada and Germany compared",
+   "description": "A CV that works in Lagos, Accra or Nairobi can cost you interviews in London, Toronto or Berlin. Here's what to include, what to leave out and how long it should be in each country.",
+   "category": "guides",
+   "countries": [],
+   "date": "2026-10-27T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "germany-eu-blue-card-2026",
+   "title": "EU Blue Card Germany 2026: salary rules, shortage jobs and fast permanent residence",
+   "description": "Germany's EU Blue Card needs a degree and a job paying €50,700, or €45,934.20 in shortage jobs. IT specialists can qualify without a degree. Here's how it works in 2026.",
+   "category": "work-visas",
+   "countries": [],
+   "date": "2026-10-27T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "netherlands-highly-skilled-migrant-visa-2026",
+   "title": "Netherlands highly skilled migrant visa 2026: salary rules, fees and how it works",
+   "description": "The Netherlands lets recognised employers hire skilled workers from Africa with one permit. Here are the 2026 salary thresholds (€5,942 or €4,357 a month), the €423 fee and the steps.",
+   "category": "work-visas",
+   "countries": [],
+   "date": "2026-10-27T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
+   "slug": "swedish-institute-scholarship-global-professionals-2027",
+   "title": "SI Scholarship for Global Professionals 2027: a funded master's in Sweden",
+   "description": "The Swedish Institute pays tuition, SEK 12,000 a month and a travel grant for a master's in Sweden. Nigeria, Kenya, South Africa and Zambia are eligible. Apply to universities by 15 January 2027.",
+   "category": "scholarships",
+   "countries": [
+    "nigeria",
+    "south-africa",
+    "kenya",
+    "zambia"
+   ],
+   "date": "2026-10-27T00:00:00.000Z",
+   "updated": null,
+   "deadline": "2027-01-15T00:00:00.000Z"
+  },
+  {
+   "slug": "uk-student-visa-2026-costs-documents",
+   "title": "UK Student visa 2026: costs, documents and the money you must show",
+   "description": "A UK Student visa costs £558 plus £776 a year for the health surcharge. Here's how much money you must show, the documents you need, the TB test and who can still bring family.",
+   "category": "study-abroad",
+   "countries": [],
+   "date": "2026-10-27T00:00:00.000Z",
+   "updated": null,
+   "deadline": null
+  },
+  {
    "slug": "canada-eca-wes-express-entry",
    "title": "Canada ECA for Express Entry: WES cost, documents and the 5-year rule",
    "description": "Express Entry needs an Educational Credential Assessment (ECA) for any degree you earned outside Canada. Here's who issues it, what WES charges, how to send your documents and how long it stays valid.",
